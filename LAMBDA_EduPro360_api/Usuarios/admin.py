@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Usuario
+from .models import RecuperacionContrasena, Rol, Usuario
 
 @admin.register(Usuario)
 class UsuarioAdmin(UserAdmin):
@@ -18,3 +18,15 @@ class UsuarioAdmin(UserAdmin):
     )
 
     readonly_fields = ("fecha_creacion",)
+
+@admin.register(Rol)
+class RolAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "fecha_creacion")
+    search_fields = ("nombre",)
+
+
+@admin.register(RecuperacionContrasena)
+class RecuperacionContrasenaAdmin(admin.ModelAdmin):
+    list_display = ("usuario", "token", "expira_en", "usado")
+    list_filter = ("usado",)
+    search_fields = ("usuario__username", "token")
