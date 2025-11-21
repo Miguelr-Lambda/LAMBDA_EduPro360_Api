@@ -57,8 +57,14 @@ class TareaSerializer(serializers.ModelSerializer):
         if asignatura:
             tareas = Tarea.objects.filter(asignatura=asignatura).exclude(pk=getattr(self.instance, "pk", None))
             total = tareas.aggregate(total=Sum("peso_porcentual"))['total'] or Decimal("0")
-            if total + peso > Decimal("100"):
+            nuevo_total = total + peso
+            if nuevo_total > Decimal("100"):
                 raise serializers.ValidationError("La suma de pesos de la asignatura no puede superar el 100%.")
+            if nuevo_total != Decimal("100"):
+                faltante = Decimal("100") - nuevo_total
+                raise serializers.ValidationError(
+                    f"El plan de evaluación debe sumar 100%. Ajuste los pesos (faltan {faltante}%)."
+                )
         return attrs
 
 

@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -32,6 +33,9 @@ INSTALLED_APPS = [
 
     # Terceros
     "rest_framework",
+
+    # Celery Beat para tareas programadas
+    "django_celery_beat",
 
     # Locales
     "Usuarios",
@@ -106,6 +110,22 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# --- Celery + Redis ---
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_BEAT_SCHEDULE = {
+    "recordatorios-tareas": {
+        "task": "Academico.tasks.enviar_recordatorios_vencimiento",
+        "schedule": crontab(minute=0, hour="*/6"),
+    },
+    "reporte-mensual": {
+        "task": "Academico.tasks.generar_reporte_mensual",
+        "schedule": crontab(minute=0, hour=3, day_of_month="1"),
+    },
 }
 
 

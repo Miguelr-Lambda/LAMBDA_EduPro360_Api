@@ -10,11 +10,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import RecuperacionContrasena, Rol, Usuario
 from .permisos import EsAdministrador, EsAdministradorODueno
 from .serializers import (
     CambiarContrasenaSerializer,
+    EmailTokenObtainPairSerializer,
     RecuperarContrasenaSerializer,
     RolSerializer,
     SolicitarRecuperacionSerializer,
@@ -93,6 +94,12 @@ class RegistroUsuarioView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LoginEmailView(TokenObtainPairView):
+    """Autenticación JWT usando correo y contraseña."""
+
+    permission_classes = [AllowAny]
+    serializer_class = EmailTokenObtainPairSerializer
 
 
 class SolicitarRecuperacionView(APIView):
@@ -312,6 +319,12 @@ class UsuarioCambiarContrasena(APIView):
         # Valida permiso por objeto (admin o dueño)
         self.check_object_permissions(request, usuario)
 
+        if not usuario.activo or not usuario.is_active:
+            return Response(
+                {"detail": "El usuario está inactivo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
         serializer = CambiarContrasenaSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -325,6 +338,7 @@ class UsuarioCambiarContrasena(APIView):
         nueva = serializer.validated_data["nueva_contrasena"]
         usuario.set_password(nueva)
         usuario.save(update_fields=["password"])
+        enviar_confirmacion_cambio(usuario)
         return Response({"ok": True}, status=status.HTTP_200_OK)
 
 
