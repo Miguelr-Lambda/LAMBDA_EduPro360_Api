@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import Usuario, Rol
@@ -138,3 +140,27 @@ class RecuperarContrasenaSerializer(serializers.Serializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.messages)
         return value
+
+
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Autenticación SimpleJWT usando correo en lugar de username."""
+
+    username_field = "email"
+
+    def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        if not email or not password:
+            raise AuthenticationFailed("Debe enviar correo y contraseña.")
+
+        usuario = Usuario.objects.filter(email__iexact=email).first()
+        if not usuario:
+            raise AuthenticationFailed("El usuario no existe.")
+        if not usuario.is_active or not usuario.activo:
+            raise AuthenticationFailed("El usuario está inactivo.")
+        if not usuario.check_password(password):
+            raise AuthenticationFailed("Credenciales incorrectas.")
+
+        refresh = self.get_token(usuario)
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}

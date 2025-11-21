@@ -1,0 +1,350 @@
+{
+  "info": {
+    "name": "EduPro360 API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colección para probar EduPro360 con JWT por correo, roles, módulo académico y tareas Celery. Usa variables {{base_url}}, {{access_token}} y {{refresh_token}}."
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (correo + contraseña)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", ""]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.environment.set('access_token', data.access || '');",
+                  "pm.environment.set('refresh_token', data.refresh || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refrescar token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", "refresh", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{access_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/verify/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", "verify", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Usuarios y Roles",
+      "item": [
+        {
+          "name": "Crear rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"DOCENTE\",\n  \"permisos_asignados\": [\"crear_tarea\", \"calificar_tarea\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/roles/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "roles", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/roles/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "roles", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"profesor1\",\n  \"password\": \"Passw0rd!\",\n  \"first_name\": \"Ana\",\n  \"last_name\": \"García\",\n  \"email\": \"ana@example.com\",\n  \"telefono\": \"555-1111\",\n  \"rol\": 1,\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Usuarios/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Usuarios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/Usuarios/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Usuarios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contrasena_actual\": \"Passw0rd!\",\n  \"nueva_contrasena\": \"Passw0rd2!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Usuarios/1/cambiar-contrasena/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Usuarios", "1", "cambiar-contrasena", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Académico",
+      "item": [
+        {
+          "name": "Crear asignatura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Matemáticas I\",\n  \"codigo\": \"MAT101\",\n  \"descripcion\": \"Álgebra básica\",\n  \"estado\": \"ACTIVA\",\n  \"docente_responsable\": 1,\n  \"periodo_academico\": \"2025-01\",\n  \"estudiantes\": [2,3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Academico/asignaturas/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "asignaturas", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear tarea/examen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asignatura\": 1,\n  \"titulo\": \"Parcial 1\",\n  \"descripcion\": \"Capítulos 1-3\",\n  \"fecha_publicacion\": \"2025-02-01\",\n  \"fecha_vencimiento\": \"2025-02-10\",\n  \"peso_porcentual\": \"50\",\n  \"tipo_tarea\": \"EXAMEN\",\n  \"estado\": \"ACTIVA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Academico/tareas/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "tareas", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear entrega",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tarea\": 1,\n  \"estudiante\": 2,\n  \"archivo_entrega\": \"https://ejemplo.com/entregas/archivo.pdf\",\n  \"comentarios_estudiante\": \"Listo para revisión\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Academico/entregas/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "entregas", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calificar entrega",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nota\": \"95\",\n  \"retroalimentacion_docente\": \"Muy buen trabajo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Academico/entregas/1/calificar/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "entregas", "1", "calificar", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar notas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/Academico/notas/?asignatura=1&periodo=2025-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "notas", ""],
+              "query": [
+                {"key": "asignatura", "value": "1"},
+                {"key": "periodo", "value": "2025-01"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ejecutar recordatorios (Celery)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/Academico/recordatorios/ejecutar/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "recordatorios", "ejecutar", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generar reporte mensual (Celery)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodo\": \"2025-02\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/Academico/reportes/mensual/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "Academico", "reportes", "mensual", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

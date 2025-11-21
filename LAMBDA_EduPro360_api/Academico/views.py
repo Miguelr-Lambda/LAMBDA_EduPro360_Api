@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 
+from datetime import datetime, timedelta
+
 from django.core.mail import send_mail
-from django.db.models import Avg
+from django.db.models import Avg, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -10,7 +12,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from Usuarios.models import Usuario
+from Usuarios.permisos import PermisoEnRol, _es_admin
 from .models import Asignatura, Entrega, RecordatorioTarea, ReporteMensual, Tarea
+from .tasks import enviar_recordatorios_vencimiento, generar_reporte_mensual
 from .serializers import (
     AsignaturaSerializer,
     CalificarEntregaSerializer,
@@ -89,6 +93,24 @@ def _programar_recordatorios(tarea):
         )
 
 
+def _promedio_acumulado(asignatura: Asignatura, estudiante: Usuario) -> float:
+    """Calcula el promedio ponderado del estudiante en la asignatura."""
+
+    tareas = asignatura.tareas.all()
+    promedio = 0
+    for tarea in tareas:
+        entrega = Entrega.objects.filter(tarea=tarea, estudiante=estudiante).first()
+        if entrega and entrega.nota is not None:
+            promedio += float(entrega.nota) * float(tarea.peso_porcentual) / 100
+    return round(promedio, 2) if tareas else 0
+
+
+def _tiene_permiso(usuario: Usuario, permiso: str) -> bool:
+    rol = getattr(usuario, "rol", None)
+    permisos = rol.permisos_asignados if rol else []
+    return bool(_es_admin(usuario) or (permiso in permisos))
+
+
 class AsignaturaListCreate(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -98,6 +120,12 @@ class AsignaturaListCreate(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        if not _tiene_permiso(request.user, "crear_asignatura"):
+            return Response(
+                {"detail": "No tienes permiso para crear asignaturas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = AsignaturaSerializer(data=request.data)
         if serializer.is_valid():
             asignatura = serializer.save()
@@ -146,6 +174,12 @@ class TareaListCreate(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        if not _tiene_permiso(request.user, "crear_tarea"):
+            return Response(
+                {"detail": "No tienes permiso para crear tareas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = TareaSerializer(data=request.data)
         if serializer.is_valid():
             tarea = serializer.save()
@@ -164,6 +198,9 @@ class TareaDetail(APIView):
 
     def put(self, request, pk):
         tarea = get_object_or_404(Tarea, pk=pk)
+        if tarea.estado != "ACTIVA":
+            return Response({"detail": "Solo se pueden editar tareas activas."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = TareaSerializer(tarea, data=request.data)
         if serializer.is_valid():
             tarea = serializer.save()
@@ -173,6 +210,9 @@ class TareaDetail(APIView):
 
     def patch(self, request, pk):
         tarea = get_object_or_404(Tarea, pk=pk)
+        if tarea.estado != "ACTIVA":
+            return Response({"detail": "Solo se pueden editar tareas activas."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = TareaSerializer(tarea, data=request.data, partial=True)
         if serializer.is_valid():
             tarea = serializer.save()
@@ -181,7 +221,11 @@ class TareaDetail(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        Tarea.objects.filter(pk=pk).delete()
+        tarea = get_object_or_404(Tarea, pk=pk)
+        if tarea.estado != "ACTIVA":
+            return Response({"detail": "Solo se pueden eliminar tareas activas."}, status=status.HTTP_400_BAD_REQUEST)
+
+        tarea.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -222,6 +266,13 @@ class CalificarEntregaView(APIView):
 
     def post(self, request, pk):
         entrega = get_object_or_404(Entrega, pk=pk)
+
+        if not _tiene_permiso(request.user, "calificar_tarea"):
+            return Response(
+                {"detail": "No tienes permiso para calificar entregas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = CalificarEntregaSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -232,7 +283,9 @@ class CalificarEntregaView(APIView):
         entrega.estado_calificacion = "CALIFICADO"
         entrega.save(update_fields=["nota", "retroalimentacion_docente", "fecha_calificacion", "estado_calificacion"])
         _notificar_estudiante_calificacion(entrega)
-        return Response(EntregaSerializer(entrega).data)
+        datos = EntregaSerializer(entrega).data
+        datos["promedio_acumulado"] = _promedio_acumulado(entrega.tarea.asignatura, entrega.estudiante)
+        return Response(datos)
 
 
 class NotasEstudianteView(APIView):
@@ -241,70 +294,63 @@ class NotasEstudianteView(APIView):
     def get(self, request):
         usuario = request.user
         asignatura_id = request.query_params.get("asignatura")
-        if not asignatura_id:
-            return Response({"detail": "Debe indicar la asignatura."}, status=status.HTTP_400_BAD_REQUEST)
+        periodo = request.query_params.get("periodo")
+        if not asignatura_id and not periodo:
+            return Response(
+                {"detail": "Debe indicar la asignatura o el periodo académico."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        asignatura = get_object_or_404(Asignatura, pk=asignatura_id)
-        pertenece = asignatura.estudiantes.filter(pk=usuario.pk).exists()
-        if (
-            usuario != asignatura.docente_responsable
-            and not usuario.is_staff
-            and not pertenece
-        ):
-            return Response({"detail": "No tienes acceso a esta asignatura."}, status=status.HTTP_403_FORBIDDEN)
+        asignaturas = Asignatura.objects.all()
+        if asignatura_id:
+            asignaturas = asignaturas.filter(pk=asignatura_id)
+        if periodo:
+            asignaturas = asignaturas.filter(periodo_academico=periodo)
 
-        tareas = asignatura.tareas.order_by("fecha_vencimiento")
-        resultado = []
-        promedio = 0
-        for tarea in tareas:
-            entrega = Entrega.objects.filter(tarea=tarea, estudiante=usuario).first()
-            nota = entrega.nota if entrega else None
-            retro = entrega.retroalimentacion_docente if entrega else ""
-            estado = entrega.estado_calificacion if entrega else "SIN_CALIFICAR"
-            if nota is not None:
-                promedio += float(nota) * float(tarea.peso_porcentual) / 100
-            resultado.append(
+        if not _es_admin(usuario):
+            asignaturas = asignaturas.filter(Q(estudiantes=usuario) | Q(docente_responsable=usuario)).distinct()
+
+        if not asignaturas.exists():
+            return Response({"detail": "No tienes asignaturas con esos filtros."}, status=status.HTTP_404_NOT_FOUND)
+
+        respuesta = []
+        for asignatura in asignaturas:
+            tareas = asignatura.tareas.order_by("fecha_vencimiento")
+            resultado = []
+            for tarea in tareas:
+                entrega = Entrega.objects.filter(tarea=tarea, estudiante=usuario).first()
+                nota = entrega.nota if entrega else None
+                retro = entrega.retroalimentacion_docente if entrega else ""
+                estado = entrega.estado_calificacion if entrega else "SIN_CALIFICAR"
+                resultado.append(
+                    {
+                        "titulo": tarea.titulo,
+                        "tipo_tarea": tarea.tipo_tarea,
+                        "nota": nota,
+                        "peso_porcentual": tarea.peso_porcentual,
+                        "retroalimentacion_docente": retro,
+                        "estado_calificacion": estado,
+                    }
+                )
+
+            respuesta.append(
                 {
-                    "titulo": tarea.titulo,
-                    "tipo_tarea": tarea.tipo_tarea,
-                    "nota": nota,
-                    "peso_porcentual": tarea.peso_porcentual,
-                    "retroalimentacion_docente": retro,
-                    "estado_calificacion": estado,
+                    "asignatura": asignatura.nombre,
+                    "periodo": asignatura.periodo_academico,
+                    "tareas": resultado,
+                    "promedio_general": _promedio_acumulado(asignatura, usuario),
                 }
             )
-        response = {
-            "tareas": resultado,
-            "promedio_general": round(promedio, 2) if resultado else 0,
-        }
-        return Response(response)
+
+        return Response(respuesta if len(respuesta) > 1 else respuesta[0])
 
 
 class EjecutarRecordatoriosView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        enviados = 0
-        pendientes = RecordatorioTarea.objects.filter(enviado=False, fecha_programada__lte=timezone.now())
-        for recordatorio in pendientes:
-            tarea = recordatorio.tarea
-            estudiantes = tarea.asignatura.estudiantes.exclude(email="")
-            correos = [al.email for al in estudiantes if al.email]
-            if recordatorio.tipo_recordatorio == "1_DIA":
-                docente = tarea.asignatura.docente_responsable
-                if docente and docente.email:
-                    correos.append(docente.email)
-            if correos:
-                _enviar_correo(
-                    "Recordatorio de tarea",
-                    f"La tarea {tarea.titulo} vence el {tarea.fecha_vencimiento}.",
-                    correos,
-                )
-                recordatorio.enviado = True
-                recordatorio.fecha_envio = timezone.now()
-                recordatorio.save(update_fields=["enviado", "fecha_envio"])
-                enviados += 1
-        return Response({"recordatorios_enviados": enviados})
+        tarea_celery = enviar_recordatorios_vencimiento.delay()
+        return Response({"programado": True, "task_id": str(tarea_celery.id)})
 
 
 class ReporteMensualView(APIView):
@@ -318,53 +364,5 @@ class ReporteMensualView(APIView):
             ahora = timezone.now()
             periodo = f"{ahora.year}-{ahora.month:02d}"
 
-        datos = []
-        asignaturas = Asignatura.objects.all()
-        peores = []
-        mejores_docentes = []
-        for asignatura in asignaturas:
-            entregas = Entrega.objects.filter(tarea__asignatura=asignatura, estado_calificacion="CALIFICADO")
-            promedio = entregas.aggregate(avg=Avg("nota"))['avg'] or 0
-            total_estudiantes = asignatura.estudiantes.count()
-            reprobados = entregas.filter(nota__lt=3).count()
-            total_calificadas = entregas.count() or 1
-            tasa_aprobacion = 100 - ((reprobados / total_calificadas) * 100)
-            tareas_pendientes = asignatura.tareas.filter(fecha_vencimiento__gte=timezone.now().date()).count()
-            datos.append(
-                {
-                    "asignatura": asignatura.nombre,
-                    "periodo": periodo,
-                    "total_estudiantes": total_estudiantes,
-                    "promedio_general": round(float(promedio), 2),
-                    "tasa_aprobacion": round(tasa_aprobacion, 2),
-                    "tareas_pendientes": tareas_pendientes,
-                }
-            )
-            peores.append((asignatura.nombre, reprobados))
-            if promedio:
-                mejores_docentes.append((asignatura.docente_responsable.get_full_name() or asignatura.docente_responsable.username, promedio))
-
-        peores.sort(key=lambda x: x[1], reverse=True)
-        mejores_docentes.sort(key=lambda x: x[1], reverse=True)
-        resumen = {
-            "periodo": periodo,
-            "detalle": datos,
-            "asignaturas_con_mayor_reprobacion": [nombre for nombre, _ in peores[:3]],
-            "docentes_con_mejor_promedio": [nombre for nombre, _ in mejores_docentes[:3]],
-        }
-        ReporteMensual.objects.create(periodo=periodo, datos=resumen)
-
-        destinatarios = Usuario.objects.filter(
-            rol__permisos_asignados__contains=["recibir_notificacion_estado_mensual"]
-        ).exclude(email="")
-        correos = [user.email for user in destinatarios if user.email]
-        _enviar_correo(
-            "Reporte mensual EduPro 360",
-            (
-                f"Reporte del periodo {periodo}.\n"
-                f"Asignaturas analizadas: {len(datos)}.\n"
-                f"Docentes destacados: {', '.join(resumen['docentes_con_mejor_promedio']) or 'N/A'}."
-            ),
-            correos,
-        )
-        return Response(resumen, status=status.HTTP_201_CREATED)
+        tarea_celery = generar_reporte_mensual.delay(periodo)
+        return Response({"programado": True, "periodo": periodo, "task_id": str(tarea_celery.id)}, status=status.HTTP_202_ACCEPTED)
