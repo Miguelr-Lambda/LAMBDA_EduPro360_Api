@@ -101,6 +101,13 @@ class LoginEmailView(TokenObtainPairView):
     permission_classes = [AllowAny]
     serializer_class = EmailTokenObtainPairSerializer
 
+class PerfilActualView(APIView):
+    """Devuelve el perfil del usuario autenticado."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UsuarioSerializer(request.user).data)
 
 class SolicitarRecuperacionView(APIView):
     permission_classes = [AllowAny]

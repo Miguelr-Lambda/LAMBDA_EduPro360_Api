@@ -16,7 +16,8 @@ class RolSerializer(serializers.ModelSerializer):
 class UsuarioSerializer(serializers.ModelSerializer):
     """Salida/lectura de usuario."""
     rol_detalle = RolSerializer(source="rol", read_only=True)
-
+    is_staff = serializers.BooleanField(read_only=True)
+    is_superuser = serializers.BooleanField(read_only=True)
     class Meta:
         model = Usuario
         fields = [
@@ -28,6 +29,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "telefono",
             "rol",
             "rol_detalle",
+            "is_staff",
+            "is_superuser",
             "activo",
             "fecha_creacion",
         ]

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
 
     # Terceros
     "rest_framework",
+    "corsheaders",
 
     # Celery Beat para tareas programadas
     "django_celery_beat",
@@ -50,7 +51,15 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 
 ROOT_URLCONF = "LAMBDA_EduPro360_api.urls"
 TEMPLATES = [{
