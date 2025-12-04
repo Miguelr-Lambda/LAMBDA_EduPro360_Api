@@ -1,32 +1,20 @@
 import { useState } from "react";
 import { apiFetch } from "../api/client";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/AuthContext";
 
 export default function ReportesPage() {
-  const { tokens, role, isAuthenticated } = useAuth();
+  const { tokens, isAuthenticated } = useAuth();
   const [periodo, setPeriodo] = useState("");
   const [status, setStatus] = useState(null);
 
-  const roleKey = typeof role === "string" ? role.toLowerCase() : "";
-  const isAdmin = roleKey.startsWith("admin");
-  const disabled = !tokens?.access || !isAdmin;
+  const disabled = !tokens?.access;
 
   if (!isAuthenticated) {
     return (
       <section className="card">
         <p className="eyebrow">Reportes</p>
         <h1>Autenticación requerida</h1>
-        <p>Inicia sesión con un rol administrativo para programar los reportes académicos mensuales.</p>
-      </section>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <section className="card">
-        <p className="eyebrow">Reportes</p>
-        <h1>Solo administrativo</h1>
-        <p>El rol actual "{role || "invitado"}" no puede programar reportes. Solicita a un administrador que lo haga.</p>
+        <p>Inicia sesión para programar los reportes académicos mensuales.</p>
       </section>
     );
   }
