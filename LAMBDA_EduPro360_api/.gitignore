@@ -1,0 +1,43 @@
+# Entorno virtual
+venv/
+ENV/
+env/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Archivos de base de datos locales
+db.sqlite3
+
+# Archivos de configuración sensibles
+*.env
+.env
+
+# Archivos de logs
+*.log
+
+# Archivos de migraciones compilados (los .pyc dentro de migraciones)
+*/migrations/__pycache__/
+
+# Archivos generados por el sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de VSCode / PyCharm
+.vscode/
+.idea/
+
+# Archivos de cobertura de pruebas
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Archivos de compilación
+*.egg-info/
+build/
+dist/
+node_modules
+.DS_Store
+dist
+.env
