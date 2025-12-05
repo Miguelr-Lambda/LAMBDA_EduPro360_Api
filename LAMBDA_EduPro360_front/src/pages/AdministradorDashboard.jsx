@@ -1,42 +1,153 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { usuariosAPI, clasesAPI } from "../services/api";
 
 export default function AdministradorDashboard() {
-  const { user, logout } = useAuth();
-  const [activeSection, setActiveSection] = useState("users");
+  const { logout } = useAuth();
 
-  // Estado para registrar profesor
+  // Estados para formularios
   const [profesorForm, setProfesorForm] = useState({
     nombreCompleto: "",
     email: "",
-    documentoIdentidad: "",
-    clasesAsignadas: []
+    usuario: "",
+    contraseña: "",
+    documentoIdentidad: ""
   });
 
-  // Estado para registrar estudiante
   const [estudianteForm, setEstudianteForm] = useState({
     nombreCompleto: "",
     email: "",
+    usuario: "",
+    contraseña: "",
     documentoIdentidad: "",
     grado: "Primer Grado",
     contactoEmergencia: "",
     observacionesMedicas: ""
   });
 
-  // Estado para crear clase
   const [claseForm, setClaseForm] = useState({
     nombreClase: "",
     profesor: "",
     dia: "Lunes",
-    hora: "",
+    hora: "08:00 AM",
     descripcion: ""
   });
 
+  // Estados de UI
   const [showProfesorForm, setShowProfesorForm] = useState(false);
   const [showEstudianteForm, setShowEstudianteForm] = useState(false);
   const [showClaseForm, setShowClaseForm] = useState(false);
 
-  const clasesDisponibles = ["Matemáticas", "Ciencias", "Historia", "Inglés", "Educación Física"];
+  // Estados de datos
+  const [profesores, setProfesores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Cargar profesores al montar
+  useEffect(() => {
+    cargarProfesores();
+  }, []);
+
+  const cargarProfesores = async () => {
+    try {
+      const response = await usuariosAPI.obtenerProfesores();
+      if (response.success) {
+        setProfesores(response.profesores);
+      }
+    } catch (error) {
+      console.error('Error al cargar profesores:', error);
+    }
+  };
+
+  const handleRegistrarProfesor = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await usuariosAPI.registrarProfesor(profesorForm);
+
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Profesor registrado exitosamente' });
+        setProfesorForm({
+          nombreCompleto: "",
+          email: "",
+          usuario: "",
+          contraseña: "",
+          documentoIdentidad: ""
+        });
+        setShowProfesorForm(false);
+        cargarProfesores(); // Recargar lista
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Error al registrar profesor' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegistrarEstudiante = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await usuariosAPI.registrarEstudiante(estudianteForm);
+
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Estudiante registrado exitosamente' });
+        setEstudianteForm({
+          nombreCompleto: "",
+          email: "",
+          usuario: "",
+          contraseña: "",
+          documentoIdentidad: "",
+          grado: "Primer Grado",
+          contactoEmergencia: "",
+          observacionesMedicas: ""
+        });
+        setShowEstudianteForm(false);
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Error al registrar estudiante' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCrearClase = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await clasesAPI.crear({
+        nombreClase: claseForm.nombreClase,
+        profesor: claseForm.profesor,
+        descripcion: claseForm.descripcion,
+        horario: {
+          dia: claseForm.dia,
+          hora: claseForm.hora
+        }
+      });
+
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Clase creada exitosamente' });
+        setClaseForm({
+          nombreClase: "",
+          profesor: "",
+          dia: "Lunes",
+          hora: "08:00 AM",
+          descripcion: ""
+        });
+        setShowClaseForm(false);
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Error al crear clase' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="dashboard-page">
@@ -51,6 +162,13 @@ export default function AdministradorDashboard() {
       </header>
 
       <main className="dashboard-content">
+        {/* Mensajes de feedback */}
+        {message.text && (
+          <div className={`message-banner ${message.type}`}>
+            {message.text}
+          </div>
+        )}
+
         <div className="admin-dashboard">
           {/* Manage Users Section */}
           <div className="admin-card">
@@ -59,13 +177,21 @@ export default function AdministradorDashboard() {
             <div className="admin-buttons">
               <button
                 className="btn-admin-primary"
-                onClick={() => setShowProfesorForm(!showProfesorForm)}
+                onClick={() => {
+                  setShowProfesorForm(!showProfesorForm);
+                  setShowEstudianteForm(false);
+                  setMessage({ type: '', text: '' });
+                }}
               >
                 Registrar Profesor
               </button>
               <button
                 className="btn-admin-primary"
-                onClick={() => setShowEstudianteForm(!showEstudianteForm)}
+                onClick={() => {
+                  setShowEstudianteForm(!showEstudianteForm);
+                  setShowProfesorForm(false);
+                  setMessage({ type: '', text: '' });
+                }}
               >
                 Registrar Estudiante
               </button>
@@ -75,54 +201,52 @@ export default function AdministradorDashboard() {
             {showProfesorForm && (
               <div className="admin-form-container">
                 <h3>Registrar Profesor</h3>
-                <form className="admin-form">
+                <form className="admin-form" onSubmit={handleRegistrarProfesor}>
                   <input
                     type="text"
                     placeholder="Nombre Completo"
                     value={profesorForm.nombreCompleto}
                     onChange={(e) => setProfesorForm({...profesorForm, nombreCompleto: e.target.value})}
+                    required
                   />
                   <input
                     type="email"
                     placeholder="Correo Electrónico"
                     value={profesorForm.email}
                     onChange={(e) => setProfesorForm({...profesorForm, email: e.target.value})}
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Usuario"
+                    value={profesorForm.usuario}
+                    onChange={(e) => setProfesorForm({...profesorForm, usuario: e.target.value})}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Contraseña"
+                    value={profesorForm.contraseña}
+                    onChange={(e) => setProfesorForm({...profesorForm, contraseña: e.target.value})}
+                    required
                   />
                   <input
                     type="text"
                     placeholder="Documento de Identidad"
                     value={profesorForm.documentoIdentidad}
                     onChange={(e) => setProfesorForm({...profesorForm, documentoIdentidad: e.target.value})}
+                    required
                   />
 
-                  <div className="form-section">
-                    <label className="form-label">Rol</label>
-                    <select className="form-select">
-                      <option>Profesor</option>
-                    </select>
-                    <label className="form-label-secondary">Asignar Rol</label>
-                  </div>
-
-                  <div className="form-section">
-                    <label className="form-label">Asignar Clases</label>
-                    <div className="checkbox-group">
-                      {clasesDisponibles.map((clase, index) => (
-                        <label key={index} className="checkbox-label">
-                          <input type="checkbox" />
-                          <span>{clase}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="form-buttons">
-                    <button type="submit" className="btn-submit">
-                      Registrar Profesor
+                    <button type="submit" className="btn-submit" disabled={loading}>
+                      {loading ? 'Registrando...' : 'Registrar Profesor'}
                     </button>
                     <button
                       type="button"
                       className="btn-cancel"
                       onClick={() => setShowProfesorForm(false)}
+                      disabled={loading}
                     >
                       Cancelar
                     </button>
@@ -135,44 +259,66 @@ export default function AdministradorDashboard() {
             {showEstudianteForm && (
               <div className="admin-form-container">
                 <h3>Registro de Estudiante</h3>
-                <form className="admin-form">
+                <form className="admin-form" onSubmit={handleRegistrarEstudiante}>
                   <input
                     type="text"
                     placeholder="Nombre Completo"
                     value={estudianteForm.nombreCompleto}
                     onChange={(e) => setEstudianteForm({...estudianteForm, nombreCompleto: e.target.value})}
+                    required
                   />
                   <input
                     type="email"
                     placeholder="Correo Electrónico"
                     value={estudianteForm.email}
                     onChange={(e) => setEstudianteForm({...estudianteForm, email: e.target.value})}
+                    required
                   />
                   <input
                     type="text"
-                    placeholder="Documento de Identidad"
-                    value={estudianteForm.documentoIdentidad}
-                    onChange={(e) => setEstudianteForm({...estudianteForm, documentoIdentidad: e.target.value})}
+                    placeholder="Usuario"
+                    value={estudianteForm.usuario}
+                    onChange={(e) => setEstudianteForm({...estudianteForm, usuario: e.target.value})}
+                    required
                   />
 
                   <div className="form-row">
                     <div className="form-group-inline">
                       <label>Contraseña</label>
-                      <input type="password" placeholder="Crear Contraseña" />
+                      <input
+                        type="password"
+                        placeholder="Crear Contraseña"
+                        value={estudianteForm.contraseña}
+                        onChange={(e) => setEstudianteForm({...estudianteForm, contraseña: e.target.value})}
+                        required
+                      />
                     </div>
                     <div className="form-group-inline">
-                      <label>Grado</label>
-                      <select
-                        value={estudianteForm.grado}
-                        onChange={(e) => setEstudianteForm({...estudianteForm, grado: e.target.value})}
-                      >
-                        <option>Primer Grado</option>
-                        <option>Segundo Grado</option>
-                        <option>Fister Grado</option>
-                        <option>Inencer Grado</option>
-                        <option>Premer Grado</option>
-                      </select>
+                      <label>Documento Identidad</label>
+                      <input
+                        type="text"
+                        placeholder="Documento"
+                        value={estudianteForm.documentoIdentidad}
+                        onChange={(e) => setEstudianteForm({...estudianteForm, documentoIdentidad: e.target.value})}
+                        required
+                      />
                     </div>
+                  </div>
+
+                  <div className="form-group-inline">
+                    <label>Grado</label>
+                    <select
+                      value={estudianteForm.grado}
+                      onChange={(e) => setEstudianteForm({...estudianteForm, grado: e.target.value})}
+                      required
+                    >
+                      <option>Primer Grado</option>
+                      <option>Segundo Grado</option>
+                      <option>Tercer Grado</option>
+                      <option>Cuarto Grado</option>
+                      <option>Quinto Grado</option>
+                      <option>Sexto Grado</option>
+                    </select>
                   </div>
 
                   <label className="form-label">Información Adicional</label>
@@ -188,13 +334,14 @@ export default function AdministradorDashboard() {
                   />
 
                   <div className="form-buttons">
-                    <button type="submit" className="btn-submit">
-                      Registrarse
+                    <button type="submit" className="btn-submit" disabled={loading}>
+                      {loading ? 'Registrando...' : 'Registrar Estudiante'}
                     </button>
                     <button
                       type="button"
                       className="btn-cancel"
                       onClick={() => setShowEstudianteForm(false)}
+                      disabled={loading}
                     >
                       Cancelar
                     </button>
@@ -210,7 +357,10 @@ export default function AdministradorDashboard() {
 
             <button
               className="btn-admin-primary full-width"
-              onClick={() => setShowClaseForm(!showClaseForm)}
+              onClick={() => {
+                setShowClaseForm(!showClaseForm);
+                setMessage({ type: '', text: '' });
+              }}
             >
               Crear Clase
             </button>
@@ -219,12 +369,13 @@ export default function AdministradorDashboard() {
             {showClaseForm && (
               <div className="admin-form-container">
                 <h3>Registrar Clase</h3>
-                <form className="admin-form">
+                <form className="admin-form" onSubmit={handleCrearClase}>
                   <input
                     type="text"
                     placeholder="Nombre de la Clase"
                     value={claseForm.nombreClase}
                     onChange={(e) => setClaseForm({...claseForm, nombreClase: e.target.value})}
+                    required
                   />
 
                   <div className="form-section">
@@ -232,10 +383,14 @@ export default function AdministradorDashboard() {
                     <select
                       value={claseForm.profesor}
                       onChange={(e) => setClaseForm({...claseForm, profesor: e.target.value})}
+                      required
                     >
-                      <option value="">Profesor A</option>
-                      <option value="a">Profesor A</option>
-                      <option value="b">Profesor B</option>
+                      <option value="">Seleccionar profesor...</option>
+                      {profesores.map((prof) => (
+                        <option key={prof._id} value={prof._id}>
+                          {prof.nombreCompleto}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -245,42 +400,45 @@ export default function AdministradorDashboard() {
                       <select
                         value={claseForm.dia}
                         onChange={(e) => setClaseForm({...claseForm, dia: e.target.value})}
+                        required
                       >
-                        <option>Día</option>
                         <option>Lunes</option>
                         <option>Martes</option>
                         <option>Miércoles</option>
                         <option>Jueves</option>
                         <option>Viernes</option>
+                        <option>Sábado</option>
                       </select>
                       <select
                         value={claseForm.hora}
                         onChange={(e) => setClaseForm({...claseForm, hora: e.target.value})}
+                        required
                       >
-                        <option>Hora</option>
                         <option>08:00 AM</option>
                         <option>10:00 AM</option>
-                        <option>01:00 PM</option>
-                        <option>03:00 PM</option>
+                        <option>12:00 PM</option>
+                        <option>02:00 PM</option>
+                        <option>04:00 PM</option>
                       </select>
                     </div>
                   </div>
 
                   <label className="form-label">Descripción</label>
                   <textarea
-                    placeholder="Descripción"
+                    placeholder="Descripción de la clase"
                     value={claseForm.descripcion}
                     onChange={(e) => setClaseForm({...claseForm, descripcion: e.target.value})}
                   />
 
                   <div className="form-buttons">
-                    <button type="submit" className="btn-submit">
-                      Registrar Clase
+                    <button type="submit" className="btn-submit" disabled={loading}>
+                      {loading ? 'Creando...' : 'Registrar Clase'}
                     </button>
                     <button
                       type="button"
                       className="btn-cancel"
                       onClick={() => setShowClaseForm(false)}
+                      disabled={loading}
                     >
                       Cancelar
                     </button>
