@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { clasesAPI, calificacionesAPI, tareasAPI, entregasAPI } from "../services/api";
+import { clasesAPI, calificacionesAPI, tareasAPI, entregasAPI, notificacionesAPI } from "../services/api";
+import NotificationsPanel from "../components/NotificationsPanel";
 
 export default function ProfesorDashboard() {
   const { user, logout } = useAuth();
@@ -11,6 +12,10 @@ export default function ProfesorDashboard() {
   const [selectedClass, setSelectedClass] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Estados de notificaciones
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   // Estados de estadísticas
   const [stats, setStats] = useState({
@@ -59,6 +64,25 @@ export default function ProfesorDashboard() {
       cargarTareas();
     }
   }, [selectedClass]);
+
+  // Cargar conteo de notificaciones
+  useEffect(() => {
+    cargarConteoNotificaciones();
+    // Actualizar cada 30 segundos
+    const interval = setInterval(cargarConteoNotificaciones, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const cargarConteoNotificaciones = async () => {
+    try {
+      const response = await notificacionesAPI.obtenerConteo();
+      if (response.success) {
+        setNotificationCount(response.count);
+      }
+    } catch (error) {
+      console.error('Error al cargar conteo de notificaciones:', error);
+    }
+  };
 
   const cargarClasesProfesor = async () => {
     try {
@@ -362,11 +386,29 @@ export default function ProfesorDashboard() {
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span style={{ color: 'white', fontWeight: 600 }}>👨‍🏫 {user?.nombreCompleto}</span>
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="btn-notifications"
+          >
+            🔔 Notificaciones
+            {notificationCount > 0 && (
+              <span className="notification-badge">{notificationCount}</span>
+            )}
+          </button>
           <button onClick={logout} className="btn-logout">
             Cerrar sesión
           </button>
         </div>
       </header>
+
+      {/* Panel de notificaciones */}
+      <NotificationsPanel
+        isOpen={showNotifications}
+        onClose={() => {
+          setShowNotifications(false);
+          cargarConteoNotificaciones();
+        }}
+      />
 
       <main className="dashboard-content">
         {/* Mensajes de feedback */}

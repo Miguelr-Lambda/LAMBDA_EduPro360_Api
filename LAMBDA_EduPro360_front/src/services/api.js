@@ -158,3 +158,44 @@ export const entregasAPI = {
     });
   },
 };
+
+// ===== NOTIFICACIONES =====
+export const notificacionesAPI = {
+  obtenerMisNotificaciones: async (leidas) => {
+    const query = leidas !== undefined ? `?leidas=${leidas}` : '';
+    return apiRequest(`/notifications${query}`);
+  },
+
+  obtenerNoLeidas: async () => {
+    return apiRequest('/notifications/no-leidas');
+  },
+
+  obtenerConteo: async () => {
+    return apiRequest('/notifications/conteo');
+  },
+
+  marcarComoLeida: async (notificacionId) => {
+    return apiRequest(`/notifications/${notificacionId}/leer`, {
+      method: 'PUT',
+    });
+  },
+
+  marcarTodasComoLeidas: async () => {
+    return apiRequest('/notifications/leer-todas', {
+      method: 'PUT',
+    });
+  },
+
+  eliminar: async (notificacionId) => {
+    return apiRequest(`/notifications/${notificacionId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  crear: async (data) => {
+    return apiRequest('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};

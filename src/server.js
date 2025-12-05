@@ -9,6 +9,7 @@ const classRoutes = require('./routes/class.routes');
 const gradeRoutes = require('./routes/grade.routes');
 const taskRoutes = require('./routes/task.routes');
 const submissionRoutes = require('./routes/submission.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 const app = express();
 
@@ -39,7 +40,8 @@ app.get('/', (req, res) => {
       classes: '/api/classes',
       grades: '/api/grades',
       tasks: '/api/tasks',
-      submissions: '/api/submissions'
+      submissions: '/api/submissions',
+      notifications: '/api/notifications'
     }
   });
 });
@@ -50,6 +52,7 @@ app.use('/api/classes', classRoutes);
 app.use('/api/grades', gradeRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/submissions', submissionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
