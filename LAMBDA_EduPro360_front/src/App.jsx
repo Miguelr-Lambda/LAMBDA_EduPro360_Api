@@ -1,56 +1,93 @@
-import { Route, Routes, NavLink } from "react-router-dom";
-import DashboardPage from "./pages/DashboardPage";
-import AuthPage from "./pages/AuthPage";
-import AcademicPage from "./pages/AcademicPage";
-import NotasPage from "./pages/NotasPage";
+import { Route, Routes, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import ReportesPage from "./pages/ReportesPage";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import ProfesorDashboard from "./pages/ProfesorDashboard";
+import EstudianteDashboard from "./pages/EstudianteDashboard";
+import AdministradorDashboard from "./pages/AdministradorDashboard";
 
-function Navigation() {
-  const { isAuthenticated, logout } = useAuth();
-  return (
-    <header className="app-header">
-      <div className="brand">
-        <span className="logo">🎓</span>
-        <div>
-          <p className="brand-subtitle">EduPro360</p>
-          <p className="brand-title">Panel académico</p>
-        </div>
-      </div>
-      <nav>
-        <NavLink to="/" end>
-          Inicio
-        </NavLink>
-        <NavLink to="/academico">Académico</NavLink>
-        <NavLink to="/notas">Notas</NavLink>
-        <NavLink to="/reportes">Reportes</NavLink>
-        <NavLink to="/auth">Acceso</NavLink>
-      </nav>
-      {isAuthenticated && (
-        <button className="ghost" onClick={logout} type="button">
-          Cerrar sesión
-        </button>
-      )}
-    </header>
-  );
+function PrivateRoute({ children, requiredRole }) {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user?.rol !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function RoleBasedRedirect() {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  switch (user?.rol) {
+    case 'administrador':
+      return <Navigate to="/dashboard/administrador" replace />;
+    case 'profesor':
+      return <Navigate to="/dashboard/profesor" replace />;
+    case 'estudiante':
+      return <Navigate to="/dashboard/estudiante" replace />;
+    default:
+      return <Navigate to="/login" replace />;
+  }
 }
 
 export default function App() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="app-shell">
-      <Navigation />
-      <main className="app-content">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/academico" element={<AcademicPage />} />
-          <Route path="/notas" element={<NotasPage />} />
-          <Route path="/reportes" element={<ReportesPage />} />
-        </Routes>
-      </main>
-      <footer className="app-footer">
-        <p>Conecta este frontend con el backend Django en <code>/api</code> usando JWT.</p>
-      </footer>
+      <Routes>
+        {/* Ruta pública */}
+        <Route
+          path="/"
+          element={isAuthenticated ? <RoleBasedRedirect /> : <HomePage />}
+        />
+
+        {/* Login */}
+        <Route
+          path="/login"
+          element={isAuthenticated ? <RoleBasedRedirect /> : <LoginPage />}
+        />
+
+        {/* Dashboards por rol */}
+        <Route
+          path="/dashboard/administrador"
+          element={
+            <PrivateRoute requiredRole="administrador">
+              <AdministradorDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/profesor"
+          element={
+            <PrivateRoute requiredRole="profesor">
+              <ProfesorDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/estudiante"
+          element={
+            <PrivateRoute requiredRole="estudiante">
+              <EstudianteDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Redirección por defecto */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

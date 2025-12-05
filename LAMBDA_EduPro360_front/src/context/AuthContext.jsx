@@ -30,13 +30,30 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  const login = useCallback(async (email, password) => {
-    const response = await apiFetch("/auth/login/", {
-      method: "POST",
-      body: { email, password },
+  const login = useCallback(async (usuario, contraseña) => {
+    // Usar la API de Node.js en lugar de Django
+    const response = await fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ usuario, contraseña }),
     });
-    setTokens({ access: response.access, refresh: response.refresh });
-    return response;
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al iniciar sesión');
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      setTokens({ access: data.token, refresh: data.token });
+      setUser(data.user);
+      return data;
+    } else {
+      throw new Error(data.message || 'Error al iniciar sesión');
+    }
   }, []);
 
   const register = useCallback(async (payload) => {
