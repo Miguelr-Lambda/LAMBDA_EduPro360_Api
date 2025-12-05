@@ -7,6 +7,8 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const classRoutes = require('./routes/class.routes');
 const gradeRoutes = require('./routes/grade.routes');
+const taskRoutes = require('./routes/task.routes');
+const submissionRoutes = require('./routes/submission.routes');
 
 const app = express();
 
@@ -35,7 +37,9 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       users: '/api/users',
       classes: '/api/classes',
-      grades: '/api/grades'
+      grades: '/api/grades',
+      tasks: '/api/tasks',
+      submissions: '/api/submissions'
     }
   });
 });
@@ -44,6 +48,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/grades', gradeRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/submissions', submissionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
