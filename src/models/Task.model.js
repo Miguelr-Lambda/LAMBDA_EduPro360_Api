@@ -1,59 +1,100 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const taskSchema = new mongoose.Schema({
-  asignatura: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class',
-    required: [true, 'La asignatura es requerida']
+const Task = sequelize.define('Task', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  asignaturaId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'classes',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'La asignatura es requerida'
+      }
+    }
   },
   titulo: {
-    type: String,
-    required: [true, 'El título es requerido'],
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'El título es requerido'
+      }
+    }
   },
   descripcion: {
-    type: String,
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   fecha_publicacion: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
   fecha_vencimiento: {
-    type: Date,
-    required: [true, 'La fecha de vencimiento es requerida']
+    type: DataTypes.DATE,
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'La fecha de vencimiento es requerida'
+      }
+    }
   },
   peso_porcentual: {
-    type: Number,
-    required: [true, 'El peso porcentual es requerido'],
-    min: [0, 'El peso debe ser mayor a 0'],
-    max: [100, 'El peso debe ser menor o igual a 100']
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'El peso porcentual es requerido'
+      },
+      min: {
+        args: [0],
+        msg: 'El peso debe ser mayor a 0'
+      },
+      max: {
+        args: [100],
+        msg: 'El peso debe ser menor o igual a 100'
+      }
+    }
   },
   tipo_tarea: {
-    type: String,
-    enum: ['Tarea', 'Examen', 'Proyecto', 'Quiz', 'Participación'],
-    default: 'Tarea'
+    type: DataTypes.ENUM('Tarea', 'Examen', 'Proyecto', 'Quiz', 'Participación'),
+    defaultValue: 'Tarea'
   },
   estado: {
-    type: String,
-    enum: ['Activa', 'Inactiva', 'Finalizada'],
-    default: 'Activa'
+    type: DataTypes.ENUM('Activa', 'Inactiva', 'Finalizada'),
+    defaultValue: 'Activa'
   },
-  docente: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'El docente es requerido']
+  docenteId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El docente es requerido'
+      }
+    }
   }
 }, {
-  timestamps: true
-});
-
-// Validación: fecha de vencimiento debe ser posterior a fecha de publicación
-taskSchema.pre('save', function(next) {
-  if (this.fecha_vencimiento <= this.fecha_publicacion) {
-    return next(new Error('La fecha de vencimiento debe ser posterior a la fecha de publicación'));
+  tableName: 'tasks',
+  timestamps: true,
+  hooks: {
+    beforeSave: async (task) => {
+      // Validación: fecha de vencimiento debe ser posterior a fecha de publicación
+      if (task.fecha_vencimiento <= task.fecha_publicacion) {
+        throw new Error('La fecha de vencimiento debe ser posterior a la fecha de publicación');
+      }
+    }
   }
-  next();
 });
 
-module.exports = mongoose.model('Task', taskSchema);
+module.exports = Task;
