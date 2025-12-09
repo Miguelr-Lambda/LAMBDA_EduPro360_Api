@@ -1,29 +1,16 @@
-const mongoose = require('mongoose');
 require('dotenv').config();
-const User = require('../models/User.model');
-const Class = require('../models/Class.model');
-const Grade = require('../models/Grade.model');
-
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-    console.log('✅ MongoDB conectado');
-  } catch (error) {
-    console.error('❌ Error al conectar MongoDB:', error);
-    process.exit(1);
-  }
-};
+const { sequelize, connectDB } = require('../config/database');
+const { User, Class, Grade } = require('../models');
 
 const seedDatabase = async () => {
   try {
+    // Conectar a la base de datos
+    await connectDB();
+
     // Limpiar base de datos
     console.log('🗑️  Limpiando base de datos...');
-    await User.deleteMany({});
-    await Class.deleteMany({});
-    await Grade.deleteMany({});
+    await sequelize.sync({ force: true });
+    console.log('✅ Base de datos limpia');
 
     // Crear Administrador
     console.log('👤 Creando Administrador...');
@@ -35,6 +22,7 @@ const seedDatabase = async () => {
       documentoIdentidad: 'ADM001',
       rol: 'administrador'
     });
+    console.log('  ✓ Admin creado:', admin.usuario);
 
     // Crear Profesores
     console.log('👨‍🏫 Creando Profesores...');
@@ -44,9 +32,9 @@ const seedDatabase = async () => {
       usuario: 'mgarcia',
       contraseña: 'profesor123',
       documentoIdentidad: 'PROF001',
-      rol: 'profesor',
-      clasesAsignadas: []
+      rol: 'profesor'
     });
+    console.log('  ✓ Profesor creado:', profesor1.usuario);
 
     const profesor2 = await User.create({
       nombreCompleto: 'Juan Pérez',
@@ -54,9 +42,9 @@ const seedDatabase = async () => {
       usuario: 'jperez',
       contraseña: 'profesor123',
       documentoIdentidad: 'PROF002',
-      rol: 'profesor',
-      clasesAsignadas: []
+      rol: 'profesor'
     });
+    console.log('  ✓ Profesor creado:', profesor2.usuario);
 
     const profesor3 = await User.create({
       nombreCompleto: 'Ana Rodríguez',
@@ -64,9 +52,9 @@ const seedDatabase = async () => {
       usuario: 'arodriguez',
       contraseña: 'profesor123',
       documentoIdentidad: 'PROF003',
-      rol: 'profesor',
-      clasesAsignadas: []
+      rol: 'profesor'
     });
+    console.log('  ✓ Profesor creado:', profesor3.usuario);
 
     // Crear Estudiantes
     console.log('👨‍🎓 Creando Estudiantes...');
@@ -81,6 +69,7 @@ const seedDatabase = async () => {
       contactoEmergencia: '555-0101',
       observacionesMedicas: 'Ninguna'
     });
+    console.log('  ✓ Estudiante creado:', estudiante1.usuario);
 
     const estudiante2 = await User.create({
       nombreCompleto: 'Emily Johnson',
@@ -93,6 +82,7 @@ const seedDatabase = async () => {
       contactoEmergencia: '555-0102',
       observacionesMedicas: 'Alergia al polen'
     });
+    console.log('  ✓ Estudiante creado:', estudiante2.usuario);
 
     const estudiante3 = await User.create({
       nombreCompleto: 'Michael Brown',
@@ -101,10 +91,11 @@ const seedDatabase = async () => {
       contraseña: 'estudiante123',
       documentoIdentidad: 'EST003',
       rol: 'estudiante',
-      grado: 'Tercer Grado',
+      grado: 'Cuarto Grado',
       contactoEmergencia: '555-0103',
-      observacionesMedicas: 'Ninguna'
+      observacionesMedicas: 'Asma leve'
     });
+    console.log('  ✓ Estudiante creado:', estudiante3.usuario);
 
     const estudiante4 = await User.create({
       nombreCompleto: 'Sarah Wilson',
@@ -115,250 +106,168 @@ const seedDatabase = async () => {
       rol: 'estudiante',
       grado: 'Tercer Grado',
       contactoEmergencia: '555-0104',
-      observacionesMedicas: 'Asma leve'
-    });
-
-    const estudiante5 = await User.create({
-      nombreCompleto: 'David Martinez',
-      email: 'david.martinez@estudiante.com',
-      usuario: 'dmartinez',
-      contraseña: 'estudiante123',
-      documentoIdentidad: 'EST005',
-      rol: 'estudiante',
-      grado: 'Cuarto Grado',
-      contactoEmergencia: '555-0105',
       observacionesMedicas: 'Ninguna'
     });
+    console.log('  ✓ Estudiante creado:', estudiante4.usuario);
 
     // Crear Clases
     console.log('📚 Creando Clases...');
-    const matematicas = await Class.create({
+    const clase1 = await Class.create({
       nombreClase: 'Matemáticas',
-      profesor: profesor1._id,
-      descripcion: 'Curso de matemáticas básicas',
-      horario: {
-        dia: 'Lunes',
-        hora: '08:00 AM'
-      },
-      estudiantes: [estudiante1._id, estudiante2._id, estudiante3._id, estudiante4._id]
+      profesorId: profesor1.id,
+      descripcion: 'Matemáticas básicas para tercer grado',
+      horarioDia: 'Lunes',
+      horarioHora: '08:00 AM'
     });
+    console.log('  ✓ Clase creada:', clase1.nombreClase);
 
-    const sociales = await Class.create({
-      nombreClase: 'Sociales',
-      profesor: profesor2._id,
-      descripcion: 'Historia y geografía',
-      horario: {
-        dia: 'Martes',
-        hora: '10:00 AM'
-      },
-      estudiantes: [estudiante1._id, estudiante2._id, estudiante3._id, estudiante4._id]
+    const clase2 = await Class.create({
+      nombreClase: 'Ciencias Naturales',
+      profesorId: profesor2.id,
+      descripcion: 'Introducción a las ciencias naturales',
+      horarioDia: 'Martes',
+      horarioHora: '09:00 AM'
     });
+    console.log('  ✓ Clase creada:', clase2.nombreClase);
 
-    const lecturaCritica = await Class.create({
-      nombreClase: 'Lectura Crítica',
-      profesor: profesor3._id,
-      descripcion: 'Comprensión lectora y análisis',
-      horario: {
-        dia: 'Miércoles',
-        hora: '09:00 AM'
-      },
-      estudiantes: [estudiante1._id, estudiante2._id, estudiante3._id, estudiante4._id]
+    const clase3 = await Class.create({
+      nombreClase: 'Lenguaje y Literatura',
+      profesorId: profesor3.id,
+      descripcion: 'Comprensión lectora y escritura creativa',
+      horarioDia: 'Miércoles',
+      horarioHora: '10:00 AM'
     });
+    console.log('  ✓ Clase creada:', clase3.nombreClase);
 
-    const ingles = await Class.create({
-      nombreClase: 'Inglés',
-      profesor: profesor1._id,
-      descripcion: 'Inglés básico',
-      horario: {
-        dia: 'Jueves',
-        hora: '11:00 AM'
-      },
-      estudiantes: [estudiante1._id, estudiante2._id, estudiante3._id, estudiante4._id]
+    const clase4 = await Class.create({
+      nombreClase: 'Estudios Sociales',
+      profesorId: profesor1.id,
+      descripcion: 'Historia y geografía básica',
+      horarioDia: 'Jueves',
+      horarioHora: '11:00 AM'
     });
+    console.log('  ✓ Clase creada:', clase4.nombreClase);
 
-    // Actualizar clases asignadas de profesores
-    await User.findByIdAndUpdate(profesor1._id, {
-      $push: { clasesAsignadas: { $each: [matematicas._id, ingles._id] } }
-    });
-
-    await User.findByIdAndUpdate(profesor2._id, {
-      $push: { clasesAsignadas: sociales._id }
-    });
-
-    await User.findByIdAndUpdate(profesor3._id, {
-      $push: { clasesAsignadas: lecturaCritica._id }
-    });
+    // Asignar estudiantes a las clases
+    console.log('📝 Asignando estudiantes a clases...');
+    await clase1.addEstudiantes([estudiante1, estudiante2, estudiante4]);
+    await clase2.addEstudiantes([estudiante1, estudiante2, estudiante3]);
+    await clase3.addEstudiantes([estudiante1, estudiante3, estudiante4]);
+    await clase4.addEstudiantes([estudiante2, estudiante3, estudiante4]);
+    console.log('  ✓ Estudiantes asignados a clases');
 
     // Crear Calificaciones
-    console.log('📝 Creando Calificaciones...');
+    console.log('📊 Creando Calificaciones...');
 
-    // Calificaciones de John Smith
-    await Grade.create([
-      {
-        estudiante: estudiante1._id,
-        clase: matematicas._id,
-        calificacion: 88,
-        descripcion: 'Buen desempeño en álgebra',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      },
-      {
-        estudiante: estudiante1._id,
-        clase: sociales._id,
-        calificacion: 92,
-        descripcion: 'Excelente participación',
-        periodo: 'Primer Periodo',
-        profesor: profesor2._id
-      },
-      {
-        estudiante: estudiante1._id,
-        clase: lecturaCritica._id,
-        calificacion: 85,
-        descripcion: 'Buena comprensión lectora',
-        periodo: 'Primer Periodo',
-        profesor: profesor3._id
-      },
-      {
-        estudiante: estudiante1._id,
-        clase: ingles._id,
-        calificacion: 90,
-        descripcion: 'Muy buena pronunciación',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      }
-    ]);
+    // Calificaciones para John Smith
+    await Grade.create({
+      estudianteId: estudiante1.id,
+      claseId: clase1.id,
+      calificacion: 88,
+      descripcion: 'Buen desempeño en matemáticas',
+      periodo: 'Primer Periodo',
+      profesorId: profesor1.id
+    });
 
-    // Calificaciones de Emily Johnson
-    await Grade.create([
-      {
-        estudiante: estudiante2._id,
-        clase: matematicas._id,
-        calificacion: 92,
-        descripcion: 'Excelente en geometría',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      },
-      {
-        estudiante: estudiante2._id,
-        clase: sociales._id,
-        calificacion: 88,
-        descripcion: 'Buen conocimiento histórico',
-        periodo: 'Primer Periodo',
-        profesor: profesor2._id
-      },
-      {
-        estudiante: estudiante2._id,
-        clase: lecturaCritica._id,
-        calificacion: 95,
-        descripcion: 'Análisis profundo de textos',
-        periodo: 'Primer Periodo',
-        profesor: profesor3._id
-      },
-      {
-        estudiante: estudiante2._id,
-        clase: ingles._id,
-        calificacion: 87,
-        descripcion: 'Buen vocabulario',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      }
-    ]);
+    await Grade.create({
+      estudianteId: estudiante1.id,
+      claseId: clase2.id,
+      calificacion: 92,
+      descripcion: 'Excelente participación',
+      periodo: 'Primer Periodo',
+      profesorId: profesor2.id
+    });
 
-    // Calificaciones de Michael Brown
-    await Grade.create([
-      {
-        estudiante: estudiante3._id,
-        clase: matematicas._id,
-        calificacion: 85,
-        descripcion: 'Progreso constante',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      },
-      {
-        estudiante: estudiante3._id,
-        clase: sociales._id,
-        calificacion: 90,
-        descripcion: 'Gran interés en geografía',
-        periodo: 'Primer Periodo',
-        profesor: profesor2._id
-      },
-      {
-        estudiante: estudiante3._id,
-        clase: lecturaCritica._id,
-        calificacion: 83,
-        descripcion: 'Mejoró en comprensión',
-        periodo: 'Primer Periodo',
-        profesor: profesor3._id
-      },
-      {
-        estudiante: estudiante3._id,
-        clase: ingles._id,
-        calificacion: 86,
-        descripcion: 'Buen esfuerzo',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      }
-    ]);
+    await Grade.create({
+      estudianteId: estudiante1.id,
+      claseId: clase3.id,
+      calificacion: 85,
+      descripcion: 'Buena comprensión lectora',
+      periodo: 'Primer Periodo',
+      profesorId: profesor3.id
+    });
 
-    // Calificaciones de Sarah Wilson
-    await Grade.create([
-      {
-        estudiante: estudiante4._id,
-        clase: matematicas._id,
-        calificacion: 80,
-        descripcion: 'Necesita refuerzo',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      },
-      {
-        estudiante: estudiante4._id,
-        clase: sociales._id,
-        calificacion: 85,
-        descripcion: 'Buena participación',
-        periodo: 'Primer Periodo',
-        profesor: profesor2._id
-      },
-      {
-        estudiante: estudiante4._id,
-        clase: lecturaCritica._id,
-        calificacion: 88,
-        descripcion: 'Excelente redacción',
-        periodo: 'Primer Periodo',
-        profesor: profesor3._id
-      },
-      {
-        estudiante: estudiante4._id,
-        clase: ingles._id,
-        calificacion: 82,
-        descripcion: 'En progreso',
-        periodo: 'Primer Periodo',
-        profesor: profesor1._id
-      }
-    ]);
+    // Calificaciones para Emily Johnson
+    await Grade.create({
+      estudianteId: estudiante2.id,
+      claseId: clase1.id,
+      calificacion: 95,
+      descripcion: 'Excelente en matemáticas',
+      periodo: 'Primer Periodo',
+      profesorId: profesor1.id
+    });
 
-    console.log('✅ Base de datos poblada exitosamente');
+    await Grade.create({
+      estudianteId: estudiante2.id,
+      claseId: clase2.id,
+      calificacion: 90,
+      descripcion: 'Muy buena participación',
+      periodo: 'Primer Periodo',
+      profesorId: profesor2.id
+    });
+
+    await Grade.create({
+      estudianteId: estudiante2.id,
+      claseId: clase4.id,
+      calificacion: 87,
+      descripcion: 'Buen conocimiento de historia',
+      periodo: 'Primer Periodo',
+      profesorId: profesor1.id
+    });
+
+    // Calificaciones para Michael Brown
+    await Grade.create({
+      estudianteId: estudiante3.id,
+      claseId: clase2.id,
+      calificacion: 78,
+      descripcion: 'Necesita mejorar en ciencias',
+      periodo: 'Primer Periodo',
+      profesorId: profesor2.id
+    });
+
+    await Grade.create({
+      estudianteId: estudiante3.id,
+      claseId: clase3.id,
+      calificacion: 82,
+      descripcion: 'Buena escritura creativa',
+      periodo: 'Primer Periodo',
+      profesorId: profesor3.id
+    });
+
+    await Grade.create({
+      estudianteId: estudiante3.id,
+      claseId: clase4.id,
+      calificacion: 89,
+      descripcion: 'Excelente en geografía',
+      periodo: 'Primer Periodo',
+      profesorId: profesor1.id
+    });
+
+    console.log('  ✓ Calificaciones creadas');
+
+    console.log('\n✅ ¡Base de datos poblada exitosamente!');
     console.log('\n📋 Credenciales de acceso:');
-    console.log('\n--- Administrador ---');
-    console.log('Usuario: admin');
-    console.log('Contraseña: admin123');
-    console.log('\n--- Profesores ---');
-    console.log('Usuario: mgarcia | Contraseña: profesor123');
-    console.log('Usuario: jperez | Contraseña: profesor123');
-    console.log('Usuario: arodriguez | Contraseña: profesor123');
-    console.log('\n--- Estudiantes ---');
-    console.log('Usuario: jsmith | Contraseña: estudiante123');
-    console.log('Usuario: ejohnson | Contraseña: estudiante123');
-    console.log('Usuario: mbrown | Contraseña: estudiante123');
-    console.log('Usuario: swilson | Contraseña: estudiante123');
-    console.log('Usuario: dmartinez | Contraseña: estudiante123');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('👤 Administrador:');
+    console.log('   Usuario: admin');
+    console.log('   Contraseña: admin123');
+    console.log('\n👨‍🏫 Profesores:');
+    console.log('   Usuario: mgarcia | Contraseña: profesor123');
+    console.log('   Usuario: jperez | Contraseña: profesor123');
+    console.log('   Usuario: arodriguez | Contraseña: profesor123');
+    console.log('\n👨‍🎓 Estudiantes:');
+    console.log('   Usuario: jsmith | Contraseña: estudiante123');
+    console.log('   Usuario: ejohnson | Contraseña: estudiante123');
+    console.log('   Usuario: mbrown | Contraseña: estudiante123');
+    console.log('   Usuario: swilson | Contraseña: estudiante123');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     process.exit(0);
-
   } catch (error) {
     console.error('❌ Error al poblar base de datos:', error);
     process.exit(1);
   }
 };
 
-// Ejecutar
-connectDB().then(() => seedDatabase());
+// Ejecutar seeder
+seedDatabase();

@@ -17,7 +17,7 @@ API REST para la plataforma educativa EduPro360 que permite la gestión académi
 
 - Node.js
 - Express.js
-- MongoDB + Mongoose
+- PostgreSQL + Sequelize
 - JWT (JSON Web Tokens)
 - Bcrypt para encriptación de contraseñas
 - Express Validator
@@ -27,7 +27,7 @@ API REST para la plataforma educativa EduPro360 que permite la gestión académi
 ### Prerrequisitos
 
 - Node.js (v14 o superior)
-- MongoDB (v4.4 o superior)
+- PostgreSQL (v12 o superior)
 
 ### Pasos de instalación
 
@@ -50,7 +50,11 @@ cp .env.example .env
 Editar `.env` con tus configuraciones:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/edupro360
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=edupro360
+DB_USER=postgres
+DB_PASSWORD=tu_contraseña_aqui
 JWT_SECRET=tu_clave_secreta_aqui
 JWT_EXPIRE=7d
 CORS_ORIGIN=http://localhost:3000

@@ -1,96 +1,148 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const { sequelize } = require('../config/database');
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
   nombreCompleto: {
-    type: String,
-    required: [true, 'El nombre completo es requerido'],
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'El nombre completo es requerido'
+      }
+    }
   },
   email: {
-    type: String,
-    required: [true, 'El correo electrónico es requerido'],
-    unique: true,
-    lowercase: true,
-    trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Por favor ingrese un correo válido']
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: {
+      msg: 'Este correo electrónico ya está registrado'
+    },
+    validate: {
+      isEmail: {
+        msg: 'Por favor ingrese un correo válido'
+      },
+      notEmpty: {
+        msg: 'El correo electrónico es requerido'
+      }
+    },
+    set(value) {
+      this.setDataValue('email', value.toLowerCase().trim());
+    }
   },
   usuario: {
-    type: String,
-    required: [true, 'El usuario es requerido'],
-    unique: true,
-    trim: true,
-    minlength: [3, 'El usuario debe tener al menos 3 caracteres']
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: {
+      msg: 'Este nombre de usuario ya está en uso'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El usuario es requerido'
+      },
+      len: {
+        args: [3, 50],
+        msg: 'El usuario debe tener al menos 3 caracteres'
+      }
+    },
+    set(value) {
+      this.setDataValue('usuario', value.trim());
+    }
   },
   contraseña: {
-    type: String,
-    required: [true, 'La contraseña es requerida'],
-    minlength: [6, 'La contraseña debe tener al menos 6 caracteres'],
-    select: false
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'La contraseña es requerida'
+      },
+      len: {
+        args: [6, 100],
+        msg: 'La contraseña debe tener al menos 6 caracteres'
+      }
+    }
   },
   documentoIdentidad: {
-    type: String,
-    required: [true, 'El documento de identidad es requerido'],
-    unique: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: {
+      msg: 'Este documento de identidad ya está registrado'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El documento de identidad es requerido'
+      }
+    }
   },
   rol: {
-    type: String,
-    enum: ['administrador', 'profesor', 'estudiante'],
-    default: 'estudiante',
-    required: true
+    type: DataTypes.ENUM('administrador', 'profesor', 'estudiante'),
+    allowNull: false,
+    defaultValue: 'estudiante',
+    validate: {
+      isIn: {
+        args: [['administrador', 'profesor', 'estudiante']],
+        msg: 'El rol debe ser administrador, profesor o estudiante'
+      }
+    }
   },
-  // Campos específicos para Profesor
-  clasesAsignadas: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class'
-  }],
   // Campos específicos para Estudiante
   grado: {
-    type: String,
-    enum: ['Primer Grado', 'Segundo Grado', 'Tercer Grado', 'Cuarto Grado', 'Quinto Grado', 'Sexto Grado'],
-    required: function() {
-      return this.rol === 'estudiante';
+    type: DataTypes.ENUM('Primer Grado', 'Segundo Grado', 'Tercer Grado', 'Cuarto Grado', 'Quinto Grado', 'Sexto Grado'),
+    allowNull: true,
+    validate: {
+      isGradoRequired() {
+        if (this.rol === 'estudiante' && !this.grado) {
+          throw new Error('El grado es requerido para estudiantes');
+        }
+      }
     }
   },
   contactoEmergencia: {
-    type: String
+    type: DataTypes.STRING,
+    allowNull: true
   },
   observacionesMedicas: {
-    type: String
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   activo: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
-  timestamps: true
-});
-
-// Encriptar contraseña antes de guardar
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('contraseña')) {
-    return next();
-  }
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.contraseña = await bcrypt.hash(this.contraseña, salt);
-    next();
-  } catch (error) {
-    next(error);
+  tableName: 'users',
+  timestamps: true,
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.contraseña) {
+        const salt = await bcrypt.genSalt(10);
+        user.contraseña = await bcrypt.hash(user.contraseña, salt);
+      }
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('contraseña')) {
+        const salt = await bcrypt.genSalt(10);
+        user.contraseña = await bcrypt.hash(user.contraseña, salt);
+      }
+    }
   }
 });
 
 // Método para comparar contraseñas
-userSchema.methods.compararContraseña = async function(contraseñaIngresada) {
+User.prototype.compararContraseña = async function(contraseñaIngresada) {
   return await bcrypt.compare(contraseñaIngresada, this.contraseña);
 };
 
 // Método para obtener datos públicos del usuario
-userSchema.methods.toJSON = function() {
-  const user = this.toObject();
-  delete user.contraseña;
-  return user;
+User.prototype.toJSON = function() {
+  const values = { ...this.get() };
+  delete values.contraseña;
+  return values;
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

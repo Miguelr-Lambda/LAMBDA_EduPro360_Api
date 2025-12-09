@@ -1,52 +1,66 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const classSchema = new mongoose.Schema({
-  nombreClase: {
-    type: String,
-    required: [true, 'El nombre de la clase es requerido'],
-    trim: true
+const Class = sequelize.define('Class', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
-  profesor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'El profesor es requerido']
+  nombreClase: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'El nombre de la clase es requerido'
+      }
+    }
+  },
+  profesorId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El profesor es requerido'
+      }
+    }
   },
   descripcion: {
-    type: String,
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: true
   },
-  horario: {
-    dia: {
-      type: String,
-      enum: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-    },
-    hora: {
-      type: String
-    }
+  horarioDia: {
+    type: DataTypes.ENUM('Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'),
+    allowNull: true
   },
-  estudiantes: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
+  horarioHora: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   activa: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
-  timestamps: true
-});
+  tableName: 'classes',
+  timestamps: true,
+  hooks: {
+    beforeSave: async (classInstance) => {
+      // Validar que el profesor tenga rol de profesor
+      if (classInstance.profesorId) {
+        const User = require('./User.model');
+        const profesor = await User.findByPk(classInstance.profesorId);
 
-// Validación para asegurar que el profesor tenga rol de profesor
-classSchema.pre('save', async function(next) {
-  if (this.isModified('profesor')) {
-    const User = mongoose.model('User');
-    const profesor = await User.findById(this.profesor);
-
-    if (!profesor || profesor.rol !== 'profesor') {
-      return next(new Error('El usuario asignado debe tener rol de profesor'));
+        if (!profesor || profesor.rol !== 'profesor') {
+          throw new Error('El usuario asignado debe tener rol de profesor');
+        }
+      }
     }
   }
-  next();
 });
 
-module.exports = mongoose.model('Class', classSchema);
+module.exports = Class;
