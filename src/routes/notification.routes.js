@@ -9,10 +9,10 @@ const {
   eliminarNotificacion,
   obtenerConteoNoLeidas
 } = require('../controllers/notification.controller');
-const { authenticate } = require('../middleware/auth.middleware');
+const { protect } = require('../middleware/auth.middleware');
 
 // Todas las rutas requieren autenticación
-router.use(authenticate);
+router.use(protect);
 
 // Obtener mis notificaciones (con filtro opcional)
 router.get('/', obtenerMisNotificaciones);

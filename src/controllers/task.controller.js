@@ -1,6 +1,4 @@
-const Task = require('../models/Task.model');
-const Class = require('../models/Class.model');
-const User = require('../models/User.model');
+const { Task, Class, User } = require('../models');
 
 // @desc    Crear tarea (Solo Profesor)
 // @route   POST /api/tasks
@@ -18,7 +16,7 @@ exports.crearTarea = async (req, res) => {
     }
 
     // Verificar que la clase existe
-    const clase = await Class.findById(asignatura);
+    const clase = await Class.findByPk(asignatura);
     if (!clase) {
       return res.status(404).json({
         success: false,
@@ -27,7 +25,7 @@ exports.crearTarea = async (req, res) => {
     }
 
     // Verificar que el profesor es el responsable de la clase
-    if (req.user.rol === 'profesor' && clase.profesor.toString() !== req.user._id.toString()) {
+    if (req.user.rol === 'profesor' && clase.profesorId !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'No está autorizado para crear tareas en esta clase'
@@ -36,18 +34,27 @@ exports.crearTarea = async (req, res) => {
 
     // Crear tarea
     const tarea = await Task.create({
-      asignatura,
+      asignaturaId: asignatura,
       titulo,
       descripcion,
       fecha_vencimiento,
       peso_porcentual,
       tipo_tarea: tipo_tarea || 'Tarea',
-      docente: req.user._id
+      docenteId: req.user.id
     });
 
-    const tareaCreada = await Task.findById(tarea._id)
-      .populate('asignatura', 'nombreClase')
-      .populate('docente', 'nombreCompleto');
+    const tareaCreada = await Task.findByPk(tarea.id, {
+      include: [
+        {
+          association: 'asignatura',
+          attributes: ['id', 'nombreClase']
+        },
+        {
+          association: 'docente',
+          attributes: ['id', 'nombreCompleto']
+        }
+      ]
+    });
 
     res.status(201).json({
       success: true,
@@ -72,9 +79,14 @@ exports.obtenerTareasClase = async (req, res) => {
   try {
     const { claseId } = req.params;
 
-    const tareas = await Task.find({ asignatura: claseId })
-      .populate('docente', 'nombreCompleto')
-      .sort('-fecha_publicacion');
+    const tareas = await Task.findAll({
+      where: { asignaturaId: claseId },
+      include: [{
+        association: 'docente',
+        attributes: ['id', 'nombreCompleto']
+      }],
+      order: [['fecha_publicacion', 'DESC']]
+    });
 
     res.status(200).json({
       success: true,
@@ -96,9 +108,14 @@ exports.obtenerTareasClase = async (req, res) => {
 // @access  Private/Profesor
 exports.obtenerMisTareas = async (req, res) => {
   try {
-    const tareas = await Task.find({ docente: req.user._id })
-      .populate('asignatura', 'nombreClase')
-      .sort('-fecha_publicacion');
+    const tareas = await Task.findAll({
+      where: { docenteId: req.user.id },
+      include: [{
+        association: 'asignatura',
+        attributes: ['id', 'nombreClase']
+      }],
+      order: [['fecha_publicacion', 'DESC']]
+    });
 
     res.status(200).json({
       success: true,
@@ -120,7 +137,7 @@ exports.obtenerMisTareas = async (req, res) => {
 // @access  Private/Profesor
 exports.actualizarTarea = async (req, res) => {
   try {
-    const tarea = await Task.findById(req.params.id);
+    const tarea = await Task.findByPk(req.params.id);
 
     if (!tarea) {
       return res.status(404).json({
@@ -130,21 +147,21 @@ exports.actualizarTarea = async (req, res) => {
     }
 
     // Verificar que el profesor es el creador
-    if (req.user.rol === 'profesor' && tarea.docente.toString() !== req.user._id.toString()) {
+    if (req.user.rol === 'profesor' && tarea.docenteId !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'No está autorizado para actualizar esta tarea'
       });
     }
 
-    const tareaActualizada = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true
-      }
-    ).populate('asignatura', 'nombreClase');
+    await tarea.update(req.body);
+
+    const tareaActualizada = await Task.findByPk(req.params.id, {
+      include: [{
+        association: 'asignatura',
+        attributes: ['id', 'nombreClase']
+      }]
+    });
 
     res.status(200).json({
       success: true,
@@ -166,7 +183,7 @@ exports.actualizarTarea = async (req, res) => {
 // @access  Private/Profesor/Admin
 exports.eliminarTarea = async (req, res) => {
   try {
-    const tarea = await Task.findById(req.params.id);
+    const tarea = await Task.findByPk(req.params.id);
 
     if (!tarea) {
       return res.status(404).json({
@@ -176,14 +193,14 @@ exports.eliminarTarea = async (req, res) => {
     }
 
     // Verificar permisos
-    if (req.user.rol === 'profesor' && tarea.docente.toString() !== req.user._id.toString()) {
+    if (req.user.rol === 'profesor' && tarea.docenteId !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'No está autorizado para eliminar esta tarea'
       });
     }
 
-    await Task.findByIdAndDelete(req.params.id);
+    await tarea.destroy();
 
     res.status(200).json({
       success: true,
