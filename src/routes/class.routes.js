@@ -6,7 +6,7 @@ const {
   obtenerClasesProfesor,
   obtenerClase,
   actualizarClase,
-  eliminarClase,
+  desactivarClase,
   agregarEstudiante,
   removerEstudiante
 } = require('../controllers/class.controller');
@@ -20,7 +20,7 @@ router.get('/', authorize('administrador'), obtenerClases);
 router.get('/profesor/:profesorId', authorize('administrador', 'profesor'), obtenerClasesProfesor);
 router.get('/:id', obtenerClase);
 router.put('/:id', authorize('administrador'), actualizarClase);
-router.delete('/:id', authorize('administrador'), eliminarClase);
+router.delete('/:id', authorize('administrador'), desactivarClase);
 router.post('/:id/estudiantes', authorize('administrador'), agregarEstudiante);
 router.delete('/:id/estudiantes/:estudianteId', authorize('administrador'), removerEstudiante);
 

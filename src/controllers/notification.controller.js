@@ -4,24 +4,26 @@ const Notification = require('../models/Notification.model');
 const obtenerMisNotificaciones = async (req, res) => {
   try {
     const { leidas } = req.query;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
-    let query = { usuario: userId };
+    let where = { usuarioId: userId };
 
     // Filtrar por leídas si se especifica
     if (leidas !== undefined) {
-      query.leida = leidas === 'true';
+      where.leida = leidas === 'true';
     }
 
-    const notificaciones = await Notification.find(query)
-      .sort({ fecha_creacion: -1 })
-      .limit(100);
+    const notificaciones = await Notification.findAll({
+      where,
+      order: [['fecha_creacion', 'DESC']],
+      limit: 100
+    });
 
     res.json({
       success: true,
       notificaciones,
       total: notificaciones.length,
-      noLeidas: await Notification.countDocuments({ usuario: userId, leida: false })
+      noLeidas: await Notification.count({ where: { usuarioId: userId, leida: false } })
     });
   } catch (error) {
     console.error('Error al obtener notificaciones:', error);
@@ -35,7 +37,7 @@ const obtenerMisNotificaciones = async (req, res) => {
 // Obtener notificaciones no leídas
 const obtenerNoLeidas = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const notificaciones = await Notification.obtenerNoLeidas(userId);
     const count = notificaciones.length;
@@ -58,9 +60,11 @@ const obtenerNoLeidas = async (req, res) => {
 const marcarComoLeida = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
-    const notificacion = await Notification.findOne({ _id: id, usuario: userId });
+    const notificacion = await Notification.findOne({
+      where: { id, usuarioId: userId }
+    });
 
     if (!notificacion) {
       return res.status(404).json({
@@ -88,14 +92,14 @@ const marcarComoLeida = async (req, res) => {
 // Marcar todas las notificaciones como leídas
 const marcarTodasComoLeidas = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const result = await Notification.marcarTodasComoLeidas(userId);
 
     res.json({
       success: true,
       message: 'Todas las notificaciones marcadas como leídas',
-      actualizadas: result.modifiedCount
+      actualizadas: result[0]
     });
   } catch (error) {
     console.error('Error al marcar todas como leídas:', error);
@@ -109,9 +113,9 @@ const marcarTodasComoLeidas = async (req, res) => {
 // Crear notificación (admin/sistema)
 const crearNotificacion = async (req, res) => {
   try {
-    const { usuario, tipo, titulo, mensaje, urgente, referencia } = req.body;
+    const { usuarioId, tipo, titulo, mensaje, urgente, referenciaTipo, referenciaId } = req.body;
 
-    if (!usuario || !tipo || !titulo || !mensaje) {
+    if (!usuarioId || !tipo || !titulo || !mensaje) {
       return res.status(400).json({
         success: false,
         message: 'Faltan campos requeridos'
@@ -119,12 +123,13 @@ const crearNotificacion = async (req, res) => {
     }
 
     const notificacion = await Notification.crearNotificacion({
-      usuario,
+      usuarioId,
       tipo,
       titulo,
       mensaje,
       urgente: urgente || false,
-      referencia
+      referenciaTipo,
+      referenciaId
     });
 
     res.status(201).json({
@@ -145,9 +150,11 @@ const crearNotificacion = async (req, res) => {
 const eliminarNotificacion = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
-    const notificacion = await Notification.findOneAndDelete({ _id: id, usuario: userId });
+    const notificacion = await Notification.findOne({
+      where: { id, usuarioId: userId }
+    });
 
     if (!notificacion) {
       return res.status(404).json({
@@ -155,6 +162,8 @@ const eliminarNotificacion = async (req, res) => {
         message: 'Notificación no encontrada'
       });
     }
+
+    await notificacion.destroy();
 
     res.json({
       success: true,
@@ -172,8 +181,10 @@ const eliminarNotificacion = async (req, res) => {
 // Obtener conteo de no leídas
 const obtenerConteoNoLeidas = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const count = await Notification.countDocuments({ usuario: userId, leida: false });
+    const userId = req.user.id;
+    const count = await Notification.count({
+      where: { usuarioId: userId, leida: false }
+    });
 
     res.json({
       success: true,

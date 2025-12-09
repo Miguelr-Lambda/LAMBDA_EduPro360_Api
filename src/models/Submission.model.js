@@ -1,70 +1,105 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const submissionSchema = new mongoose.Schema({
-  tarea: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Task',
-    required: [true, 'La tarea es requerida']
+const Submission = sequelize.define('Submission', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
-  estudiante: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'El estudiante es requerido']
+  tareaId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'tasks',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'La tarea es requerida'
+      }
+    }
+  },
+  estudianteId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El estudiante es requerido'
+      }
+    }
   },
   archivo_entrega: {
-    type: String, // URL o nombre del archivo
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   comentarios_estudiante: {
-    type: String,
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   fecha_entrega: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
   estado_entrega: {
-    type: String,
-    enum: ['Pendiente', 'Entregada', 'Tarde', 'Calificada'],
-    default: 'Pendiente'
+    type: DataTypes.ENUM('Pendiente', 'Entregada', 'Tarde', 'Calificada'),
+    defaultValue: 'Pendiente'
   },
   nota: {
-    type: Number,
-    min: 0,
-    max: 100
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+    validate: {
+      min: {
+        args: [0],
+        msg: 'La nota mínima es 0'
+      },
+      max: {
+        args: [100],
+        msg: 'La nota máxima es 100'
+      }
+    }
   },
   retroalimentacion_docente: {
-    type: String,
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   fecha_calificacion: {
-    type: Date
+    type: DataTypes.DATE,
+    allowNull: true
   },
   estado_calificacion: {
-    type: String,
-    enum: ['Sin Calificar', 'Calificada', 'Revisión'],
-    default: 'Sin Calificar'
+    type: DataTypes.ENUM('Sin Calificar', 'Calificada', 'Revisión'),
+    defaultValue: 'Sin Calificar'
   }
 }, {
-  timestamps: true
-});
+  tableName: 'submissions',
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['tareaId', 'estudianteId'],
+      name: 'unique_submission_per_task_student'
+    }
+  ],
+  hooks: {
+    beforeSave: async (submission) => {
+      // Actualizar estado según fecha de entrega
+      if (submission.changed('fecha_entrega') || submission.isNewRecord) {
+        const Task = require('./Task.model');
+        const tarea = await Task.findByPk(submission.tareaId);
 
-// Índice para evitar duplicados
-submissionSchema.index({ tarea: 1, estudiante: 1 }, { unique: true });
-
-// Actualizar estado según fecha de entrega
-submissionSchema.pre('save', async function(next) {
-  if (this.isNew || this.isModified('fecha_entrega')) {
-    const Task = mongoose.model('Task');
-    const tarea = await Task.findById(this.tarea);
-
-    if (tarea && this.fecha_entrega > tarea.fecha_vencimiento) {
-      this.estado_entrega = 'Tarde';
-    } else if (this.estado_entrega === 'Pendiente') {
-      this.estado_entrega = 'Entregada';
+        if (tarea && submission.fecha_entrega > tarea.fecha_vencimiento) {
+          submission.estado_entrega = 'Tarde';
+        } else if (submission.estado_entrega === 'Pendiente') {
+          submission.estado_entrega = 'Entregada';
+        }
+      }
     }
   }
-  next();
 });
 
-module.exports = mongoose.model('Submission', submissionSchema);
+module.exports = Submission;

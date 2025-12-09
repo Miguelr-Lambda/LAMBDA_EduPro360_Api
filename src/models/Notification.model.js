@@ -1,80 +1,88 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const notificationSchema = new mongoose.Schema({
-  usuario: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const Notification = sequelize.define('Notification', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
-  tipo: {
-    type: String,
-    enum: ['tarea_nueva', 'tarea_vencida', 'calificacion_nueva', 'entrega_calificada', 'general'],
-    required: true
-  },
-  titulo: {
-    type: String,
-    required: true
-  },
-  mensaje: {
-    type: String,
-    required: true
-  },
-  leida: {
-    type: Boolean,
-    default: false
-  },
-  urgente: {
-    type: Boolean,
-    default: false
-  },
-  // Referencia opcional al objeto relacionado
-  referencia: {
-    tipo: {
-      type: String,
-      enum: ['tarea', 'calificacion', 'entrega', 'clase', null]
-    },
-    id: {
-      type: mongoose.Schema.Types.ObjectId
+  usuarioId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
     }
   },
+  tipo: {
+    type: DataTypes.ENUM('tarea_nueva', 'tarea_vencida', 'calificacion_nueva', 'entrega_calificada', 'general'),
+    allowNull: false
+  },
+  titulo: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  mensaje: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  leida: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  urgente: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  // Referencia opcional al objeto relacionado
+  referenciaTipo: {
+    type: DataTypes.ENUM('tarea', 'calificacion', 'entrega', 'clase'),
+    allowNull: true
+  },
+  referenciaId: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
   fecha_creacion: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
-  timestamps: true
+  tableName: 'notifications',
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['usuarioId', 'leida', 'fecha_creacion'],
+      name: 'notifications_search_index'
+    }
+  ]
 });
 
-// Índice para búsquedas eficientes
-notificationSchema.index({ usuario: 1, leida: 1, fecha_creacion: -1 });
-
-// Método para marcar como leída
-notificationSchema.methods.marcarComoLeida = async function() {
+// Método de instancia para marcar como leída
+Notification.prototype.marcarComoLeida = async function() {
   this.leida = true;
   return await this.save();
 };
 
-// Método estático para crear notificación
-notificationSchema.statics.crearNotificacion = async function(datos) {
-  const notificacion = new this(datos);
-  return await notificacion.save();
+// Métodos estáticos
+Notification.crearNotificacion = async function(datos) {
+  return await this.create(datos);
 };
 
-// Método estático para obtener notificaciones no leídas
-notificationSchema.statics.obtenerNoLeidas = async function(usuarioId) {
-  return await this.find({ usuario: usuarioId, leida: false })
-    .sort({ fecha_creacion: -1 })
-    .limit(50);
+Notification.obtenerNoLeidas = async function(usuarioId) {
+  return await this.findAll({
+    where: { usuarioId, leida: false },
+    order: [['fecha_creacion', 'DESC']],
+    limit: 50
+  });
 };
 
-// Método estático para marcar todas como leídas
-notificationSchema.statics.marcarTodasComoLeidas = async function(usuarioId) {
-  return await this.updateMany(
-    { usuario: usuarioId, leida: false },
-    { $set: { leida: true } }
+Notification.marcarTodasComoLeidas = async function(usuarioId) {
+  return await this.update(
+    { leida: true },
+    { where: { usuarioId, leida: false } }
   );
 };
-
-const Notification = mongoose.model('Notification', notificationSchema);
 
 module.exports = Notification;
