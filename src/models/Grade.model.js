@@ -1,54 +1,100 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const gradeSchema = new mongoose.Schema({
-  estudiante: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'El estudiante es requerido']
+const Grade = sequelize.define('Grade', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
-  clase: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class',
-    required: [true, 'La clase es requerida']
+  estudianteId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El estudiante es requerido'
+      }
+    }
+  },
+  claseId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'classes',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'La clase es requerida'
+      }
+    }
   },
   calificacion: {
-    type: Number,
-    required: [true, 'La calificación es requerida'],
-    min: [0, 'La calificación mínima es 0'],
-    max: [100, 'La calificación máxima es 100']
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'La calificación es requerida'
+      },
+      min: {
+        args: [0],
+        msg: 'La calificación mínima es 0'
+      },
+      max: {
+        args: [100],
+        msg: 'La calificación máxima es 100'
+      }
+    }
   },
   descripcion: {
-    type: String,
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   periodo: {
-    type: String,
-    enum: ['Primer Periodo', 'Segundo Periodo', 'Tercer Periodo', 'Cuarto Periodo'],
-    default: 'Primer Periodo'
+    type: DataTypes.ENUM('Primer Periodo', 'Segundo Periodo', 'Tercer Periodo', 'Cuarto Periodo'),
+    allowNull: false,
+    defaultValue: 'Primer Periodo'
   },
-  profesor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'El profesor es requerido']
-  }
-}, {
-  timestamps: true
-});
-
-// Índice compuesto para evitar duplicados de calificación por estudiante, clase y periodo
-gradeSchema.index({ estudiante: 1, clase: 1, periodo: 1 }, { unique: true });
-
-// Validación para asegurar que el estudiante tenga rol de estudiante
-gradeSchema.pre('save', async function(next) {
-  if (this.isModified('estudiante')) {
-    const User = mongoose.model('User');
-    const estudiante = await User.findById(this.estudiante);
-
-    if (!estudiante || estudiante.rol !== 'estudiante') {
-      return next(new Error('El usuario debe tener rol de estudiante'));
+  profesorId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    validate: {
+      notEmpty: {
+        msg: 'El profesor es requerido'
+      }
     }
   }
-  next();
+}, {
+  tableName: 'grades',
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['estudianteId', 'claseId', 'periodo'],
+      name: 'unique_grade_per_student_class_period'
+    }
+  ],
+  hooks: {
+    beforeSave: async (grade) => {
+      // Validar que el estudiante tenga rol de estudiante
+      if (grade.estudianteId) {
+        const User = require('./User.model');
+        const estudiante = await User.findByPk(grade.estudianteId);
+
+        if (!estudiante || estudiante.rol !== 'estudiante') {
+          throw new Error('El usuario debe tener rol de estudiante');
+        }
+      }
+    }
+  }
 });
 
-module.exports = mongoose.model('Grade', gradeSchema);
+module.exports = Grade;

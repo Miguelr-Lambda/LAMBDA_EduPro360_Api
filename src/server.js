@@ -1,7 +1,9 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+
+const { connectDB } = require('./config/database');
+const models = require('./models');
 
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
@@ -22,18 +24,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => console.log('✅ MongoDB conectado exitosamente'))
-  .catch((err) => console.error('❌ Error al conectar MongoDB:', err));
+connectDB();
 
 // Routes
 app.get('/', (req, res) => {
   res.json({
     message: 'Bienvenido a EduPro360 API',
     version: '1.0.0',
+    database: 'PostgreSQL',
     endpoints: {
       auth: '/api/auth',
       users: '/api/users',
@@ -76,7 +74,8 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`🌐 Entorno: ${process.env.NODE_ENV}`);
+  console.log(`🌐 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🗄️  Base de datos: PostgreSQL`);
 });
 
 module.exports = app;
