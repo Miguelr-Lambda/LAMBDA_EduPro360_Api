@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User.model');
+const { User } = require('../models');
 
 // Generar JWT Token
 const generarToken = (id) => {
@@ -23,8 +23,11 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Buscar usuario y incluir contraseña
-    const user = await User.findOne({ usuario }).select('+contraseña');
+    // Buscar usuario
+    const user = await User.findOne({
+      where: { usuario },
+      attributes: { include: ['contraseña'] }
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -52,11 +55,11 @@ exports.login = async (req, res) => {
     }
 
     // Generar token
-    const token = generarToken(user._id);
+    const token = generarToken(user.id);
 
     // Preparar respuesta según el rol
     const userData = {
-      _id: user._id,
+      id: user.id,
       nombreCompleto: user.nombreCompleto,
       email: user.email,
       usuario: user.usuario,
@@ -66,7 +69,14 @@ exports.login = async (req, res) => {
 
     // Agregar campos específicos según el rol
     if (user.rol === 'profesor') {
-      userData.clasesAsignadas = user.clasesAsignadas;
+      // Obtener clases asignadas del profesor
+      const userWithClasses = await User.findByPk(user.id, {
+        include: [{
+          association: 'clasesAsignadas',
+          attributes: ['id', 'nombreClase', 'descripcion']
+        }]
+      });
+      userData.clasesAsignadas = userWithClasses.clasesAsignadas || [];
     } else if (user.rol === 'estudiante') {
       userData.grado = user.grado;
       userData.contactoEmergencia = user.contactoEmergencia;
@@ -95,8 +105,12 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-      .populate('clasesAsignadas', 'nombreClase descripcion');
+    const user = await User.findByPk(req.user.id, {
+      include: [{
+        association: 'clasesAsignadas',
+        attributes: ['nombreClase', 'descripcion']
+      }]
+    });
 
     res.status(200).json({
       success: true,

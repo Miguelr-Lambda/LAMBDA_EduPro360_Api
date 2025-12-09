@@ -1,12 +1,12 @@
-const User = require('../models/User.model');
-const Class = require('../models/Class.model');
+const { User, Class } = require('../models');
+const { Op } = require('sequelize');
 
 // @desc    Registrar nuevo profesor (Solo Administrador)
 // @route   POST /api/users/profesor
 // @access  Private/Admin
 exports.registrarProfesor = async (req, res) => {
   try {
-    const { nombreCompleto, email, usuario, contraseña, documentoIdentidad, clasesAsignadas } = req.body;
+    const { nombreCompleto, email, usuario, contraseña, documentoIdentidad } = req.body;
 
     // Validar campos requeridos
     if (!nombreCompleto || !email || !usuario || !contraseña || !documentoIdentidad) {
@@ -18,7 +18,9 @@ exports.registrarProfesor = async (req, res) => {
 
     // Verificar si el usuario o email ya existe
     const userExists = await User.findOne({
-      $or: [{ email }, { usuario }, { documentoIdentidad }]
+      where: {
+        [Op.or]: [{ email }, { usuario }, { documentoIdentidad }]
+      }
     });
 
     if (userExists) {
@@ -35,20 +37,18 @@ exports.registrarProfesor = async (req, res) => {
       usuario,
       contraseña,
       documentoIdentidad,
-      rol: 'profesor',
-      clasesAsignadas: clasesAsignadas || []
+      rol: 'profesor'
     });
 
     res.status(201).json({
       success: true,
       message: 'Profesor registrado exitosamente',
       user: {
-        _id: profesor._id,
+        id: profesor.id,
         nombreCompleto: profesor.nombreCompleto,
         email: profesor.email,
         usuario: profesor.usuario,
-        rol: profesor.rol,
-        clasesAsignadas: profesor.clasesAsignadas
+        rol: profesor.rol
       }
     });
 
@@ -88,7 +88,9 @@ exports.registrarEstudiante = async (req, res) => {
 
     // Verificar si el usuario o email ya existe
     const userExists = await User.findOne({
-      $or: [{ email }, { usuario }, { documentoIdentidad }]
+      where: {
+        [Op.or]: [{ email }, { usuario }, { documentoIdentidad }]
+      }
     });
 
     if (userExists) {
@@ -115,7 +117,7 @@ exports.registrarEstudiante = async (req, res) => {
       success: true,
       message: 'Estudiante registrado exitosamente',
       user: {
-        _id: estudiante._id,
+        id: estudiante.id,
         nombreCompleto: estudiante.nombreCompleto,
         email: estudiante.email,
         usuario: estudiante.usuario,
@@ -139,9 +141,14 @@ exports.registrarEstudiante = async (req, res) => {
 // @access  Private/Admin
 exports.obtenerProfesores = async (req, res) => {
   try {
-    const profesores = await User.find({ rol: 'profesor' })
-      .select('-contraseña')
-      .populate('clasesAsignadas', 'nombreClase');
+    const profesores = await User.findAll({
+      where: { rol: 'profesor' },
+      attributes: { exclude: ['contraseña'] },
+      include: [{
+        association: 'clasesAsignadas',
+        attributes: ['id', 'nombreClase']
+      }]
+    });
 
     res.status(200).json({
       success: true,
@@ -162,8 +169,10 @@ exports.obtenerProfesores = async (req, res) => {
 // @access  Private/Admin/Profesor
 exports.obtenerEstudiantes = async (req, res) => {
   try {
-    const estudiantes = await User.find({ rol: 'estudiante' })
-      .select('-contraseña');
+    const estudiantes = await User.findAll({
+      where: { rol: 'estudiante' },
+      attributes: { exclude: ['contraseña'] }
+    });
 
     res.status(200).json({
       success: true,
@@ -184,9 +193,13 @@ exports.obtenerEstudiantes = async (req, res) => {
 // @access  Private/Admin
 exports.obtenerUsuario = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id)
-      .select('-contraseña')
-      .populate('clasesAsignadas', 'nombreClase descripcion');
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['contraseña'] },
+      include: [{
+        association: 'clasesAsignadas',
+        attributes: ['nombreClase', 'descripcion']
+      }]
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -213,7 +226,7 @@ exports.obtenerUsuario = async (req, res) => {
 // @access  Private/Admin
 exports.actualizarUsuario = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findByPk(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -232,14 +245,11 @@ exports.actualizarUsuario = async (req, res) => {
       delete req.body.rol;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true
-      }
-    ).select('-contraseña');
+    await user.update(req.body);
+
+    const updatedUser = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['contraseña'] }
+    });
 
     res.status(200).json({
       success: true,
@@ -260,7 +270,7 @@ exports.actualizarUsuario = async (req, res) => {
 // @access  Private/Admin
 exports.eliminarUsuario = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findByPk(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -270,8 +280,7 @@ exports.eliminarUsuario = async (req, res) => {
     }
 
     // Desactivar en lugar de eliminar
-    user.activo = false;
-    await user.save();
+    await user.update({ activo: false });
 
     res.status(200).json({
       success: true,
