@@ -36,6 +36,9 @@ export function AuthProvider({ children }) {
       body: { email, password },
     });
     setTokens({ access: response.access, refresh: response.refresh });
+    if (response.user) {
+      setUser(response.user);
+    }
     return response;
   }, []);
 

@@ -165,4 +165,10 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise AuthenticationFailed("Credenciales incorrectas.")
 
         refresh = self.get_token(usuario)
-        return {"refresh": str(refresh), "access": str(refresh.access_token)}
+
+        # Incluir información del usuario con su rol
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": UsuarioSerializer(usuario).data
+        }
