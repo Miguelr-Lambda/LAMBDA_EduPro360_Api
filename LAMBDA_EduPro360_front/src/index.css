@@ -901,3 +901,219 @@ h3 {
     justify-content: center;
   }
 }
+
+/* Estilos para asignaturas */
+.asignaturas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.asignatura-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 200ms ease;
+}
+
+.asignatura-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.asignatura-item strong {
+  color: #1e40af;
+  font-size: 1.1rem;
+}
+
+.asignatura-item small {
+  color: #64748b;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+/* Estilos para tareas (Docentes) */
+.tareas-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.tarea-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 200ms ease;
+}
+
+.tarea-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+}
+
+.tarea-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.tarea-title {
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.tarea-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tarea-badge.examen {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tarea-badge.tarea {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tarea-info {
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.tarea-info strong {
+  color: #475569;
+}
+
+/* Estilos para calificaciones (Estudiantes) */
+.calificaciones-container {
+  margin-top: 1.5rem;
+}
+
+.asignatura-section {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.asignatura-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.asignatura-title {
+  color: #1e40af;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.promedio-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.tareas-calificaciones {
+  display: grid;
+  gap: 1rem;
+}
+
+.calificacion-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.calificacion-detalle h4 {
+  color: #1e293b;
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.calificacion-meta {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.nota-display {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+  min-width: 80px;
+}
+
+.nota-valor {
+  color: #1e40af;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+}
+
+.nota-label {
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.nota-pendiente {
+  border-color: #fed7aa;
+  background: #fffbeb;
+}
+
+.nota-pendiente .nota-valor {
+  color: #f59e0b;
+}
+
+.retroalimentacion {
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: white;
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px;
+}
+
+.retroalimentacion strong {
+  color: #1e293b;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.retroalimentacion p {
+  color: #475569;
+  margin: 0;
+  line-height: 1.6;
+}

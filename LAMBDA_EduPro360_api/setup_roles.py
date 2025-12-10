@@ -8,39 +8,59 @@ from Usuarios.models import Rol
 # Eliminar roles existentes si los hay
 Rol.objects.all().delete()
 
-# Crear roles básicos
+# Crear roles básicos con permisos específicos
 roles_data = [
     {
         "nombre": "Administrador",
         "permisos_asignados": [
+            # Gestión de usuarios
             "crear_usuarios",
             "editar_usuarios",
             "eliminar_usuarios",
+            "ver_usuarios",
             "gestionar_roles",
+            # Gestión de asignaturas (EXCLUSIVO del administrador)
+            "crear_asignatura",
+            "editar_asignatura",
+            "eliminar_asignatura",
+            "ver_asignaturas",
+            "asignar_estudiantes",
+            "asignar_docentes",
+            # Otras funciones administrativas
             "ver_reportes",
-            "gestionar_asignaturas",
-            "gestionar_tareas",
-            "gestionar_calificaciones",
+            "generar_reportes",
         ]
     },
     {
         "nombre": "Docente",
         "permisos_asignados": [
-            "crear_asignaturas",
-            "editar_asignaturas",
-            "crear_tareas",
-            "editar_tareas",
-            "calificar_entregas",
-            "ver_estudiantes",
+            # Ver asignaturas donde es docente responsable
+            "ver_asignaturas_propias",
+            # Gestión de tareas en sus asignaturas
+            "crear_tarea",
+            "editar_tarea",
+            "eliminar_tarea",
+            "ver_tareas",
+            # Calificación (EXCLUSIVO del docente)
+            "calificar_tarea",
+            "ver_entregas",
+            "dar_retroalimentacion",
+            # Ver estudiantes de sus asignaturas
+            "ver_estudiantes_asignatura",
         ]
     },
     {
         "nombre": "Estudiante",
         "permisos_asignados": [
-            "ver_asignaturas",
-            "enviar_entregas",
-            "ver_tareas",
-            "ver_calificaciones",
+            # Ver solo sus asignaturas inscritas
+            "ver_asignaturas_inscritas",
+            # Ver tareas de sus asignaturas
+            "ver_tareas_propias",
+            # Enviar trabajos
+            "enviar_entrega",
+            "editar_entrega_propia",
+            # Ver sus propias calificaciones
+            "ver_calificaciones_propias",
         ]
     },
 ]

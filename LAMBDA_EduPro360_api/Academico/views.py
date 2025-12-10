@@ -112,14 +112,33 @@ class AsignaturaListCreate(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        usuario = request.user
         qs = Asignatura.objects.select_related("docente_responsable").all()
-        serializer = AsignaturaSerializer(qs, many=True)
-        return Response(serializer.data)
+
+        # Admin ve todas las asignaturas
+        if _es_admin(usuario):
+            serializer = AsignaturaSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        # Docente ve solo sus asignaturas asignadas
+        if _tiene_permiso(usuario, "ver_asignaturas_propias"):
+            qs = qs.filter(docente_responsable=usuario)
+            serializer = AsignaturaSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        # Estudiante ve solo asignaturas donde está inscrito
+        if _tiene_permiso(usuario, "ver_asignaturas_inscritas"):
+            qs = qs.filter(estudiantes=usuario)
+            serializer = AsignaturaSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        return Response({"detail": "No tienes permiso para ver asignaturas."}, status=status.HTTP_403_FORBIDDEN)
 
     def post(self, request):
+        # Solo Admin puede crear asignaturas
         if not _tiene_permiso(request.user, "crear_asignatura"):
             return Response(
-                {"detail": "No tienes permiso para crear asignaturas."},
+                {"detail": "Solo los administradores pueden crear asignaturas."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         serializer = AsignaturaSerializer(data=request.data)
@@ -135,9 +154,26 @@ class AsignaturaDetail(APIView):
 
     def get(self, request, pk):
         asignatura = get_object_or_404(Asignatura, pk=pk)
+        usuario = request.user
+
+        # Verificar que el usuario tenga permiso para ver esta asignatura
+        if not _es_admin(usuario):
+            # Docente: solo puede ver si es el docente responsable
+            if _tiene_permiso(usuario, "ver_asignaturas_propias") and asignatura.docente_responsable != usuario:
+                return Response({"detail": "No tienes permiso para ver esta asignatura."}, status=status.HTTP_403_FORBIDDEN)
+            # Estudiante: solo puede ver si está inscrito
+            if _tiene_permiso(usuario, "ver_asignaturas_inscritas") and not asignatura.estudiantes.filter(pk=usuario.pk).exists():
+                return Response({"detail": "No tienes permiso para ver esta asignatura."}, status=status.HTTP_403_FORBIDDEN)
+
         return Response(AsignaturaSerializer(asignatura).data)
 
     def put(self, request, pk):
+        # Solo Admin puede editar asignaturas
+        if not _tiene_permiso(request.user, "editar_asignatura"):
+            return Response(
+                {"detail": "Solo los administradores pueden editar asignaturas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         asignatura = get_object_or_404(Asignatura, pk=pk)
         serializer = AsignaturaSerializer(asignatura, data=request.data)
         if serializer.is_valid():
@@ -146,6 +182,12 @@ class AsignaturaDetail(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
+        # Solo Admin puede editar asignaturas
+        if not _tiene_permiso(request.user, "editar_asignatura"):
+            return Response(
+                {"detail": "Solo los administradores pueden editar asignaturas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         asignatura = get_object_or_404(Asignatura, pk=pk)
         serializer = AsignaturaSerializer(asignatura, data=request.data, partial=True)
         if serializer.is_valid():
@@ -154,6 +196,12 @@ class AsignaturaDetail(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
+        # Solo Admin puede eliminar asignaturas
+        if not _tiene_permiso(request.user, "eliminar_asignatura"):
+            return Response(
+                {"detail": "Solo los administradores pueden eliminar asignaturas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         Asignatura.objects.filter(pk=pk).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -162,21 +210,55 @@ class TareaListCreate(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        usuario = request.user
         asignatura_id = request.query_params.get("asignatura")
         qs = Tarea.objects.select_related("asignatura").all()
+
         if asignatura_id:
             qs = qs.filter(asignatura_id=asignatura_id)
-        serializer = TareaSerializer(qs, many=True)
-        return Response(serializer.data)
+
+        # Admin ve todas las tareas
+        if _es_admin(usuario):
+            serializer = TareaSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        # Docente ve tareas de sus asignaturas
+        if _tiene_permiso(usuario, "ver_tareas"):
+            qs = qs.filter(asignatura__docente_responsable=usuario)
+            serializer = TareaSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        # Estudiante ve tareas de sus asignaturas inscritas
+        if _tiene_permiso(usuario, "ver_tareas_propias"):
+            qs = qs.filter(asignatura__estudiantes=usuario)
+            serializer = TareaSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        return Response({"detail": "No tienes permiso para ver tareas."}, status=status.HTTP_403_FORBIDDEN)
 
     def post(self, request):
-        if not _tiene_permiso(request.user, "crear_tarea"):
+        usuario = request.user
+
+        # Solo Admin y Docente pueden crear tareas
+        if not _tiene_permiso(usuario, "crear_tarea"):
             return Response(
-                {"detail": "No tienes permiso para crear tareas."},
+                {"detail": "Solo administradores y docentes pueden crear tareas."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
         serializer = TareaSerializer(data=request.data)
         if serializer.is_valid():
+            asignatura_id = serializer.validated_data.get("asignatura").id
+
+            # Si es docente, verificar que sea responsable de la asignatura
+            if not _es_admin(usuario):
+                asignatura = Asignatura.objects.filter(pk=asignatura_id, docente_responsable=usuario).first()
+                if not asignatura:
+                    return Response(
+                        {"detail": "Solo puedes crear tareas en asignaturas donde eres docente responsable."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
             tarea = serializer.save()
             _programar_recordatorios(tarea)
             _notificar_estudiantes_tarea(tarea)
@@ -258,12 +340,24 @@ class CalificarEntregaView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        usuario = request.user
         entrega = get_object_or_404(Entrega, pk=pk)
-        if not _tiene_permiso(request.user, "calificar_tarea"):
+
+        # Solo docentes pueden calificar
+        if not _tiene_permiso(usuario, "calificar_tarea"):
             return Response(
-                {"detail": "No tienes permiso para calificar entregas."},
+                {"detail": "Solo los docentes pueden calificar entregas."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # Verificar que el docente sea responsable de la asignatura (a menos que sea admin)
+        if not _es_admin(usuario):
+            if entrega.tarea.asignatura.docente_responsable != usuario:
+                return Response(
+                    {"detail": "Solo puedes calificar entregas de tus asignaturas."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = CalificarEntregaSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -284,8 +378,32 @@ class NotasEstudianteView(APIView):
 
     def get(self, request):
         usuario = request.user
+        # Permitir que se especifique el estudiante solo si es admin o docente
+        estudiante_id = request.query_params.get("estudiante")
         asignatura_id = request.query_params.get("asignatura")
         periodo = request.query_params.get("periodo")
+
+        # Determinar qué estudiante consultar
+        if estudiante_id:
+            # Solo admin y docentes pueden consultar notas de otros estudiantes
+            if not (_es_admin(usuario) or _tiene_permiso(usuario, "ver_estudiantes_asignatura")):
+                return Response(
+                    {"detail": "No tienes permiso para ver calificaciones de otros estudiantes."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            estudiante = get_object_or_404(Usuario, pk=estudiante_id)
+        else:
+            # Si no se especifica, el estudiante es el usuario actual
+            estudiante = usuario
+
+        # Si es estudiante común, solo puede ver sus propias calificaciones
+        if not _es_admin(usuario) and not _tiene_permiso(usuario, "ver_estudiantes_asignatura"):
+            if estudiante != usuario:
+                return Response(
+                    {"detail": "Solo puedes ver tus propias calificaciones."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         if not asignatura_id and not periodo:
             return Response(
                 {"detail": "Debe indicar la asignatura o el periodo académico."},
@@ -298,18 +416,24 @@ class NotasEstudianteView(APIView):
         if periodo:
             asignaturas = asignaturas.filter(periodo_academico=periodo)
 
+        # Filtrar asignaturas según el rol
         if not _es_admin(usuario):
-            asignaturas = asignaturas.filter(Q(estudiantes=usuario) | Q(docente_responsable=usuario)).distinct()
+            # Docentes pueden ver asignaturas donde son responsables
+            if _tiene_permiso(usuario, "ver_estudiantes_asignatura"):
+                asignaturas = asignaturas.filter(docente_responsable=usuario)
+            # Estudiantes solo ven sus asignaturas inscritas
+            else:
+                asignaturas = asignaturas.filter(estudiantes=estudiante)
 
         if not asignaturas.exists():
-            return Response({"detail": "No tienes asignaturas con esos filtros."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "No hay asignaturas con esos filtros."}, status=status.HTTP_404_NOT_FOUND)
 
         respuesta = []
         for asignatura in asignaturas:
             tareas = asignatura.tareas.order_by("fecha_vencimiento")
             resultado = []
             for tarea in tareas:
-                entrega = Entrega.objects.filter(tarea=tarea, estudiante=usuario).first()
+                entrega = Entrega.objects.filter(tarea=tarea, estudiante=estudiante).first()
                 nota = entrega.nota if entrega else None
                 retro = entrega.retroalimentacion_docente if entrega else ""
                 estado = entrega.estado_calificacion if entrega else "SIN_CALIFICAR"
@@ -329,7 +453,7 @@ class NotasEstudianteView(APIView):
                     "asignatura": asignatura.nombre,
                     "periodo": asignatura.periodo_academico,
                     "tareas": resultado,
-                    "promedio_general": _promedio_acumulado(asignatura, usuario),
+                    "promedio_general": _promedio_acumulado(asignatura, estudiante),
                 }
             )
         return Response(respuesta if len(respuesta) > 1 else respuesta[0])
