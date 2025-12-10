@@ -23,7 +23,7 @@ export default function RegistrarUsuarioForm({ onUsuarioCreado }) {
   useEffect(() => {
     const cargarRoles = async () => {
       try {
-        const response = await apiFetch("/usuarios/roles/", {
+        const response = await apiFetch("/roles/", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${tokens.access}`,
@@ -66,7 +66,7 @@ export default function RegistrarUsuarioForm({ onUsuarioCreado }) {
     setErrores({});
 
     try {
-      const response = await apiFetch("/usuarios/usuarios/", {
+      const response = await apiFetch("/Usuarios/", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${tokens.access}`,
