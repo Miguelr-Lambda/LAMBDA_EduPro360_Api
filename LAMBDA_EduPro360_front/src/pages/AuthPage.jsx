@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { LoginForm, RegistroForm, RecuperacionForm } from "../components/AuthForms";
+import { LoginForm, RecuperacionForm } from "../components/AuthForms";
 import { useAuth } from "../context/AuthContext";
 
 const tabs = [
   { id: "login", label: "Iniciar sesión", component: <LoginForm /> },
-  { id: "registro", label: "Crear cuenta", component: <RegistroForm /> },
   { id: "recuperar", label: "Recuperar acceso", component: <RecuperacionForm /> },
 ];
 
@@ -13,12 +12,12 @@ export default function AuthPage() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <section className="card">
-      <p className="eyebrow">Acceso</p>
-      <h1>Autenticación JWT</h1>
+    <section className="card auth-page">
+      <p className="eyebrow">Acceso al Sistema</p>
+      <h1>Iniciar Sesión en EduPro360</h1>
       <p className="hint">
-        Las credenciales se envían a <code>/api/auth/login/</code> y reciben <code>access</code> y <code>refresh</code> tokens.
-        El registro crea una cuenta y regresa los tokens listos para consumir endpoints protegidos.
+        Ingresa con las credenciales proporcionadas por el administrador del sistema.
+        Si olvidaste tu contraseña, puedes recuperar el acceso a tu cuenta.
       </p>
       <div className="tabs">
         {tabs.map((tab) => (
@@ -28,7 +27,14 @@ export default function AuthPage() {
         ))}
       </div>
       <div className="panel">{tabs.find((t) => t.id === active)?.component}</div>
-      {isAuthenticated && <p className="feedback success">Sesión activa: ya puedes ir al módulo académico.</p>}
+      {isAuthenticated && <p className="feedback success">Sesión activa: ya puedes acceder al panel.</p>}
+
+      <div className="auth-info">
+        <p className="info-text">
+          <strong>Nota:</strong> Si eres un nuevo usuario y aún no tienes credenciales,
+          contacta al administrador del sistema para que cree tu cuenta.
+        </p>
+      </div>
     </section>
   );
 }

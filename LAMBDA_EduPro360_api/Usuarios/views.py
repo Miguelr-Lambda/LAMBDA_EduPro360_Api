@@ -1,4 +1,6 @@
 from datetime import timedelta
+import string
+import secrets as secret_module
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
@@ -21,6 +23,7 @@ from .serializers import (
     SolicitarRecuperacionSerializer,
     UsuarioActualizarSerializer,
     UsuarioCrearSerializer,
+    UsuarioCrearPorAdminSerializer,
     UsuarioSerializer,
 )
 
@@ -59,6 +62,33 @@ def enviar_bienvenida(usuario):
     )
 
 
+def enviar_credenciales(usuario, password_generada):
+    """Envía las credenciales de acceso a un usuario recién creado."""
+    if not usuario.email:
+        return
+
+    rol_nombre = usuario.rol.nombre if usuario.rol else "Usuario"
+
+    send_mail(
+        subject="Bienvenido a EduPro360 - Tus credenciales de acceso",
+        message=(
+            f"Hola {usuario.first_name or usuario.username},\n\n"
+            f"Tu cuenta ha sido creada en EduPro360 con el rol de {rol_nombre}.\n\n"
+            "A continuación te proporcionamos tus credenciales de acceso:\n\n"
+            f"Usuario/Email: {usuario.email}\n"
+            f"Contraseña temporal: {password_generada}\n\n"
+            "IMPORTANTE: Por motivos de seguridad, te recomendamos cambiar tu contraseña "
+            "después de iniciar sesión por primera vez.\n\n"
+            f"Puedes acceder a la plataforma en: {usuario.email}\n\n"
+            "Si tienes alguna duda, contacta con el administrador del sistema.\n\n"
+            "Equipo EduPro360"
+        ),
+        from_email=None,
+        recipient_list=[usuario.email],
+        fail_silently=True,
+    )
+
+
 def enviar_confirmacion_cambio(usuario):
     if not usuario.email:
         return
@@ -73,6 +103,13 @@ def enviar_confirmacion_cambio(usuario):
         recipient_list=[usuario.email],
         fail_silently=True,
     )
+
+
+def generar_password_segura(longitud=12):
+    """Genera una contraseña segura aleatoria."""
+    caracteres = string.ascii_letters + string.digits + "!@#$%&*"
+    password = ''.join(secret_module.choice(caracteres) for _ in range(longitud))
+    return password
 
 
 # ---------- Registro y recuperación de contraseña ----------
@@ -237,16 +274,30 @@ class UsuarioListCreate(APIView):
         return paginar_queryset(request, qs, UsuarioSerializer)
 
     def post(self, request):
-        serializer = UsuarioCrearSerializer(data=request.data)
+        """Crea un usuario con contraseña autogenerada y envía credenciales por correo."""
+        serializer = UsuarioCrearPorAdminSerializer(data=request.data)
         if serializer.is_valid():
-            usuario = serializer.save()
-            enviar_bienvenida(usuario)
-            # Generar tokens JWT (access + refresh) para el usuario creado por admin
-            refresh = RefreshToken.for_user(usuario)
-            tokens = {"access": str(refresh.access_token), "refresh": str(refresh)}
+            # Generar contraseña segura
+            password_generada = generar_password_segura()
+
+            # Crear el usuario
+            usuario = Usuario(**serializer.validated_data)
+            usuario.set_password(password_generada)
+
+            # Sincronizar is_active con activo
+            if hasattr(usuario, "activo") and usuario.activo is not None:
+                usuario.is_active = usuario.activo
+
+            usuario.save()
+
+            # Enviar correo con credenciales
+            enviar_credenciales(usuario, password_generada)
 
             return Response(
-                {"user": UsuarioSerializer(usuario).data, "tokens": tokens},
+                {
+                    "user": UsuarioSerializer(usuario).data,
+                    "mensaje": f"Usuario creado exitosamente. Se han enviado las credenciales a {usuario.email}"
+                },
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

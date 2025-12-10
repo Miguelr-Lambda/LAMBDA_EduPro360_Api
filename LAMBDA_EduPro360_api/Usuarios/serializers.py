@@ -84,6 +84,33 @@ class UsuarioCrearSerializer(serializers.ModelSerializer):
         return value
 
 
+class UsuarioCrearPorAdminSerializer(serializers.ModelSerializer):
+    """Creación de usuario por el admin (sin necesidad de proporcionar contraseña)."""
+
+    class Meta:
+        model = Usuario
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "telefono",
+            "rol",
+            "activo",
+        ]
+        extra_kwargs = {
+            "email": {"required": True},
+            "first_name": {"required": True},
+            "last_name": {"required": True},
+            "rol": {"required": True},
+        }
+
+    def validate_email(self, value):
+        if Usuario.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Ya existe un usuario con ese correo.")
+        return value
+
+
 class UsuarioActualizarSerializer(serializers.ModelSerializer):
     """Actualización parcial o total (sin contraseña)."""
 
