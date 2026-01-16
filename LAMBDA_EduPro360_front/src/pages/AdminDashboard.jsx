@@ -1,15 +1,88 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import RegistrarUsuarioForm from "../components/RegistrarUsuarioForm";
+import GestionUsuarios from "../components/GestionUsuarios";
+import { usuariosAPI, asignaturasAPI } from "../services/api";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarGestionUsuarios, setMostrarGestionUsuarios] = useState(false);
+
+  // Estados para estadísticas
+  const [stats, setStats] = useState({
+    totalUsuarios: '-',
+    totalDocentes: '-',
+    totalEstudiantes: '-',
+    totalAsignaturas: '-'
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    cargarEstadisticas();
+  }, []);
+
+  const cargarEstadisticas = async () => {
+    try {
+      setLoadingStats(true);
+
+      // Cargar usuarios
+      const dataUsuarios = await usuariosAPI.listar();
+      const usuarios = dataUsuarios.results || dataUsuarios;
+
+      // Cargar asignaturas
+      const asignaturas = await asignaturasAPI.listar();
+
+      // Calcular estadísticas
+      const totalUsuarios = usuarios.length;
+      const totalDocentes = usuarios.filter(u => u.rol?.nombre === 'Docente').length;
+      const totalEstudiantes = usuarios.filter(u => u.rol?.nombre === 'Estudiante').length;
+      const totalAsignaturas = asignaturas.length;
+
+      setStats({
+        totalUsuarios,
+        totalDocentes,
+        totalEstudiantes,
+        totalAsignaturas
+      });
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+      setStats({
+        totalUsuarios: 'Error',
+        totalDocentes: 'Error',
+        totalEstudiantes: 'Error',
+        totalAsignaturas: 'Error'
+      });
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleUsuarioCreado = (nuevoUsuario) => {
-    // Aquí podrías actualizar estadísticas o mostrar una notificación
     console.log("Usuario creado:", nuevoUsuario);
     setMostrarFormulario(false);
+    // Recargar estadísticas
+    cargarEstadisticas();
+  };
+
+  const handleVerUsuarios = () => {
+    setMostrarGestionUsuarios(true);
+  };
+
+  const handleGestionarRoles = () => {
+    alert('Funcionalidad de gestión de roles próximamente');
+  };
+
+  const handleConfiguracion = () => {
+    alert('Funcionalidad de configuración próximamente');
+  };
+
+  const handleLogs = () => {
+    alert('Funcionalidad de logs próximamente');
+  };
+
+  const handleReportes = () => {
+    alert('Funcionalidad de reportes próximamente');
   };
 
   return (
@@ -26,7 +99,9 @@ export default function AdminDashboard() {
           <div className="stat-icon">👥</div>
           <div className="stat-content">
             <h3>Usuarios</h3>
-            <p className="stat-number">-</p>
+            <p className="stat-number">
+              {loadingStats ? '...' : stats.totalUsuarios}
+            </p>
             <span className="stat-label">Total de usuarios en el sistema</span>
           </div>
         </div>
@@ -35,7 +110,9 @@ export default function AdminDashboard() {
           <div className="stat-icon">👨‍🏫</div>
           <div className="stat-content">
             <h3>Docentes</h3>
-            <p className="stat-number">-</p>
+            <p className="stat-number">
+              {loadingStats ? '...' : stats.totalDocentes}
+            </p>
             <span className="stat-label">Profesores activos</span>
           </div>
         </div>
@@ -44,7 +121,9 @@ export default function AdminDashboard() {
           <div className="stat-icon">👨‍🎓</div>
           <div className="stat-content">
             <h3>Estudiantes</h3>
-            <p className="stat-number">-</p>
+            <p className="stat-number">
+              {loadingStats ? '...' : stats.totalEstudiantes}
+            </p>
             <span className="stat-label">Estudiantes registrados</span>
           </div>
         </div>
@@ -53,7 +132,9 @@ export default function AdminDashboard() {
           <div className="stat-icon">📚</div>
           <div className="stat-content">
             <h3>Asignaturas</h3>
-            <p className="stat-number">-</p>
+            <p className="stat-number">
+              {loadingStats ? '...' : stats.totalAsignaturas}
+            </p>
             <span className="stat-label">Total de asignaturas</span>
           </div>
         </div>
@@ -97,8 +178,12 @@ export default function AdminDashboard() {
           </div>
           <p>Administra usuarios, roles y permisos del sistema.</p>
           <div className="button-group">
-            <button className="btn btn-primary">Ver Usuarios</button>
-            <button className="btn btn-secondary">Gestionar Roles</button>
+            <button className="btn btn-primary" onClick={handleVerUsuarios}>
+              Ver Usuarios
+            </button>
+            <button className="btn btn-secondary" onClick={handleGestionarRoles}>
+              Gestionar Roles
+            </button>
           </div>
         </div>
 
@@ -108,8 +193,12 @@ export default function AdminDashboard() {
           </div>
           <p>Configura parámetros generales y ajustes de la plataforma.</p>
           <div className="button-group">
-            <button className="btn btn-primary">Configuración</button>
-            <button className="btn btn-secondary">Logs del Sistema</button>
+            <button className="btn btn-primary" onClick={handleConfiguracion}>
+              Configuración
+            </button>
+            <button className="btn btn-secondary" onClick={handleLogs}>
+              Logs del Sistema
+            </button>
           </div>
         </div>
 
@@ -118,9 +207,21 @@ export default function AdminDashboard() {
             <h2>Reportes Administrativos</h2>
           </div>
           <p>Genera y consulta reportes sobre el uso de la plataforma.</p>
-          <button className="btn btn-primary">Ver Reportes</button>
+          <button className="btn btn-primary" onClick={handleReportes}>
+            Ver Reportes
+          </button>
         </div>
       </div>
+
+      {/* Modal de Gestión de Usuarios */}
+      {mostrarGestionUsuarios && (
+        <GestionUsuarios
+          onCerrar={() => {
+            setMostrarGestionUsuarios(false);
+            cargarEstadisticas(); // Recargar estadísticas al cerrar
+          }}
+        />
+      )}
     </div>
   );
 }
