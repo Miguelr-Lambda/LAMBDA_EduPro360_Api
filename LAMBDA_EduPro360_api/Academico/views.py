@@ -18,6 +18,7 @@ from .serializers import (
     CalificarEntregaSerializer,
     EntregaSerializer,
     GenerarReporteSerializer,
+    InscribirEstudiantesSerializer,
     TareaSerializer,
 )
 
@@ -356,4 +357,130 @@ class ReporteMensualView(APIView):
             tarea_celery = generar_reporte_mensual.delay(periodo)
         return Response({"programado": True, "periodo": periodo, "task_id": str(tarea_celery.id)}, status=status.HTTP_202_ACCEPTED)
 
-        
+
+class InscribirEstudiantesView(APIView):
+    """Inscribir uno o varios estudiantes a una asignatura"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        # Verificar permisos
+        if not _tiene_permiso(request.user, "gestionar_asignaturas") and not _tiene_permiso(request.user, "crear_asignatura"):
+            return Response(
+                {"detail": "No tienes permiso para inscribir estudiantes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Obtener asignatura
+        asignatura = get_object_or_404(Asignatura, pk=pk)
+
+        # Validar datos
+        serializer = InscribirEstudiantesSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        estudiantes_ids = serializer.validated_data['estudiantes']
+        estudiantes = Usuario.objects.filter(id__in=estudiantes_ids)
+
+        # Inscribir estudiantes
+        inscritos_nuevos = []
+        ya_inscritos = []
+
+        for estudiante in estudiantes:
+            if asignatura.estudiantes.filter(id=estudiante.id).exists():
+                ya_inscritos.append(estudiante.get_full_name() or estudiante.username)
+            else:
+                asignatura.estudiantes.add(estudiante)
+                inscritos_nuevos.append(estudiante.get_full_name() or estudiante.username)
+
+                # Enviar notificación al estudiante
+                if estudiante.email:
+                    _enviar_correo(
+                        "Inscripción en asignatura",
+                        f"Hola {estudiante.first_name or estudiante.username}, "
+                        f"has sido inscrito en la asignatura {asignatura.nombre} ({asignatura.codigo}). "
+                        f"Docente responsable: {asignatura.docente_responsable.get_full_name()}.",
+                        [estudiante.email]
+                    )
+
+        return Response({
+            "message": "Inscripción completada.",
+            "asignatura": asignatura.nombre,
+            "total_estudiantes": asignatura.estudiantes.count(),
+            "inscritos_nuevos": inscritos_nuevos,
+            "ya_inscritos": ya_inscritos
+        }, status=status.HTTP_200_OK)
+
+
+class DesinscribirEstudiantesView(APIView):
+    """Desinscribir uno o varios estudiantes de una asignatura"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        # Verificar permisos
+        if not _tiene_permiso(request.user, "gestionar_asignaturas") and not _tiene_permiso(request.user, "crear_asignatura"):
+            return Response(
+                {"detail": "No tienes permiso para desinscribir estudiantes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Obtener asignatura
+        asignatura = get_object_or_404(Asignatura, pk=pk)
+
+        # Validar datos
+        serializer = InscribirEstudiantesSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        estudiantes_ids = serializer.validated_data['estudiantes']
+        estudiantes = Usuario.objects.filter(id__in=estudiantes_ids)
+
+        # Desinscribir estudiantes
+        desinscritos = []
+        no_inscritos = []
+
+        for estudiante in estudiantes:
+            if asignatura.estudiantes.filter(id=estudiante.id).exists():
+                asignatura.estudiantes.remove(estudiante)
+                desinscritos.append(estudiante.get_full_name() or estudiante.username)
+
+                # Enviar notificación al estudiante
+                if estudiante.email:
+                    _enviar_correo(
+                        "Desinscripción de asignatura",
+                        f"Hola {estudiante.first_name or estudiante.username}, "
+                        f"has sido desinscrito de la asignatura {asignatura.nombre} ({asignatura.codigo}).",
+                        [estudiante.email]
+                    )
+            else:
+                no_inscritos.append(estudiante.get_full_name() or estudiante.username)
+
+        return Response({
+            "message": "Desinscripción completada.",
+            "asignatura": asignatura.nombre,
+            "total_estudiantes": asignatura.estudiantes.count(),
+            "desinscritos": desinscritos,
+            "no_inscritos": no_inscritos
+        }, status=status.HTTP_200_OK)
+
+
+class ListarEstudiantesAsignaturaView(APIView):
+    """Listar todos los estudiantes inscritos en una asignatura"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        asignatura = get_object_or_404(Asignatura, pk=pk)
+
+        estudiantes = asignatura.estudiantes.all().values(
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email'
+        )
+
+        return Response({
+            "asignatura": asignatura.nombre,
+            "codigo": asignatura.codigo,
+            "total_estudiantes": estudiantes.count(),
+            "estudiantes": list(estudiantes)
+        }, status=status.HTTP_200_OK)
