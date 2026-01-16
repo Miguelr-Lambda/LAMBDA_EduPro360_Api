@@ -1,0 +1,299 @@
+/* Entregas Container */
+.entregas-container {
+  padding: 1.5rem;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Tarea Grupo */
+.tarea-grupo {
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.tarea-grupo-header {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tarea-grupo-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.tarea-grupo-header .tarea-info {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Estadísticas Header */
+.estadisticas {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.stat-value.calificadas {
+  color: #d1fae5;
+}
+
+.stat-value.pendientes {
+  color: #fef3c7;
+}
+
+.stat-value.promedio {
+  color: #dbeafe;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tabla de Entregas */
+.entregas-tabla {
+  overflow-x: auto;
+}
+
+.entregas-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.entregas-tabla thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.entregas-tabla th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.entregas-tabla td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+}
+
+.entregas-tabla tbody tr:hover {
+  background: #f9fafb;
+}
+
+.entregas-tabla tbody tr.pendiente {
+  background: #fffbeb;
+}
+
+.entregas-tabla tbody tr.pendiente:hover {
+  background: #fef3c7;
+}
+
+/* Comentario en tabla */
+.comentario {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-style: italic;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badges especiales */
+.archivo-badge {
+  display: inline-block;
+  padding: 0.4rem 0.75rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nota-badge {
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.nota-badge.aprobado {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.nota-badge.reprobado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sin-nota {
+  color: #9ca3af;
+  font-size: 1.2rem;
+}
+
+/* Entrega Info (Modal Calificar) */
+.entrega-info {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.entrega-info h3 {
+  margin: 0 0 1rem;
+  color: #1e3a8a;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item .label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.info-item .value {
+  font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.comentario-estudiante {
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #3b82f6;
+}
+
+.comentario-estudiante strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.comentario-estudiante p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+/* Nota Ponderada Info */
+.nota-ponderada-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+}
+
+.nota-ponderada-info p {
+  margin: 0 0 0.75rem;
+  color: #1e40af;
+}
+
+.nota-ponderada-info strong {
+  color: #1e3a8a;
+}
+
+.nota-ponderada-info small {
+  color: #60a5fa;
+  font-size: 0.85rem;
+}
+
+.nota-ponderada-info .badge {
+  margin-top: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .estadisticas {
+    gap: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tarea-grupo-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .estadisticas {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .entregas-tabla {
+    font-size: 0.8rem;
+  }
+
+  .entregas-tabla th,
+  .entregas-tabla td {
+    padding: 0.5rem;
+  }
+
+  .comentario {
+    max-width: 150px;
+  }
+}
+
+/* Mejoras de accesibilidad */
+.entregas-tabla tbody tr:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
