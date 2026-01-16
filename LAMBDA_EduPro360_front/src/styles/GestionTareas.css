@@ -1,0 +1,247 @@
+/* Filters Row */
+.filters-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.filter-select {
+  padding: 0.65rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Tareas Container */
+.tareas-container {
+  padding: 1.5rem;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Asignatura Grupo */
+.asignatura-grupo {
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.asignatura-grupo-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.asignatura-grupo-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.asignatura-grupo-header .codigo {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.peso-total {
+  display: flex;
+  align-items: center;
+}
+
+.peso-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.peso-badge.completo {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.peso-badge.incompleto {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Tareas Lista */
+.tareas-lista {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1rem;
+}
+
+/* Tarea Card */
+.tarea-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  background: white;
+  transition: all 0.3s;
+}
+
+.tarea-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #3b82f6;
+}
+
+.tarea-header {
+  margin-bottom: 1rem;
+}
+
+.tarea-header h4 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.tarea-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tarea-descripcion {
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tarea-fechas {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.fecha-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+}
+
+.fecha-item .label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.fecha-item .value {
+  font-size: 0.85rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.tarea-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Peso Info Box */
+.peso-info-box {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background: #f3f4f6;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+}
+
+.peso-info-box p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.text-success {
+  color: #059669;
+  font-weight: 600;
+}
+
+.text-danger {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.text-warning {
+  color: #d97706;
+  font-weight: 500;
+}
+
+/* Hint text */
+.hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+/* Pills con estado */
+.pill.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pill.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .tareas-lista {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tareas-lista {
+    grid-template-columns: 1fr;
+  }
+
+  .asignatura-grupo-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .peso-total {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
