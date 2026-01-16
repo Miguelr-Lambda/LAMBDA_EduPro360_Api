@@ -125,3 +125,27 @@ class RecordatorioSerializer(serializers.ModelSerializer):
 
 class GenerarReporteSerializer(serializers.Serializer):
     periodo = serializers.CharField(required=False)
+
+
+class InscribirEstudiantesSerializer(serializers.Serializer):
+    """Serializer para inscribir/desinscribir estudiantes de una asignatura"""
+    estudiantes = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="Lista de IDs de estudiantes a inscribir/desinscribir"
+    )
+
+    def validate_estudiantes(self, value):
+        if not value:
+            raise serializers.ValidationError("Debe proporcionar al menos un estudiante.")
+
+        # Verificar que todos los IDs correspondan a usuarios válidos
+        from Usuarios.models import Usuario
+        ids_existentes = set(Usuario.objects.filter(id__in=value).values_list('id', flat=True))
+        ids_invalidos = set(value) - ids_existentes
+
+        if ids_invalidos:
+            raise serializers.ValidationError(
+                f"Los siguientes IDs no corresponden a usuarios válidos: {', '.join(map(str, ids_invalidos))}"
+            )
+
+        return value
