@@ -1,0 +1,397 @@
+/* Modal extra grande */
+.modal-xlarge {
+  max-width: 1400px;
+}
+
+/* Controls Row */
+.controls-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.controls-row .search-box {
+  flex: 1;
+  margin: 0;
+}
+
+/* Asignaturas Grid */
+.asignaturas-grid {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Asignatura Card */
+.asignatura-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.3s;
+}
+
+.asignatura-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.asignatura-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.asignatura-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1e3a8a;
+  line-height: 1.3;
+}
+
+.asignatura-header .codigo {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.asignatura-info {
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item .label {
+  font-weight: 500;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.info-item .value {
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.descripcion {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Asignatura Actions */
+.asignatura-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.btn-sm.btn-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.btn-sm.btn-info:hover {
+  background: #bfdbfe;
+}
+
+.btn-sm.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-sm.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-sm.btn-secondary {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-sm.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+.btn-sm.btn-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.btn-sm.btn-danger:hover {
+  background: #fecaca;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.required {
+  color: #dc2626;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+  border-color: #dc2626;
+}
+
+.error-message {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #dc2626;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Inscripción Styles */
+.inscripcion-info {
+  background: #f3f4f6;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.inscripcion-info h3 {
+  margin: 0 0 0.5rem;
+  color: #1e3a8a;
+}
+
+.inscripcion-info p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.inscripcion-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.estudiantes-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  background: #f3f4f6;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.panel-header h4 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.search-input-sm {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.estudiantes-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+  padding: 0.5rem;
+}
+
+.estudiante-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.estudiante-item:hover {
+  background: #f9fafb;
+  border-color: #3b82f6;
+}
+
+.estudiante-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.estudiante-item.inscrito {
+  cursor: default;
+  justify-content: space-between;
+}
+
+.estudiante-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.estudiante-info strong {
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.estudiante-info small {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.panel-footer {
+  background: #f9fafb;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-footer p {
+  margin: 0;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.btn-icon-sm {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-icon-sm.btn-danger:hover {
+  background: #fee2e2;
+}
+
+.empty-message {
+  text-align: center;
+  color: #9ca3af;
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+
+.estudiantes-lista ul {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.estudiantes-lista li {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.estudiantes-lista li:last-child {
+  border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .asignaturas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-xlarge {
+    max-width: 100%;
+  }
+
+  .asignaturas-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .inscripcion-container {
+    grid-template-columns: 1fr;
+  }
+
+  .controls-row {
+    flex-direction: column;
+  }
+
+  .controls-row .search-box {
+    width: 100%;
+  }
+}
